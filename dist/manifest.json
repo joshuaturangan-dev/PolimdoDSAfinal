@@ -1,0 +1,18 @@
+{
+  "name": "POLIMDO Lab Signage & Denah Interaktif D4",
+  "short_name": "Denah Lab POLIMDO",
+  "description": "Aplikasi Denah Blueprint & Digital Signage Laboratorium Teknik Listrik POLIMDO - Dapat Diakses 100% Offline",
+  "start_url": "/#mobile-floor-plan",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#060d19",
+  "theme_color": "#0284c7",
+  "icons": [
+    {
+      "src": "/polimdo-logo.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
