@@ -83,8 +83,7 @@ if (fs.existsSync(distPath)) {
   });
 }
 
-// Only start standalone server if NOT running on Vercel serverless
-if (!process.env.VERCEL) {
+if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
     console.log(`⚡ POLIMDO Lab Signage Server running on http://localhost:${PORT}`);
   });
