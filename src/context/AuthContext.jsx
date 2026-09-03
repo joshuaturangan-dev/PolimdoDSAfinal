@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { getApiUrl } from '../lib/api.js';
 
 const AuthContext = createContext();
 
@@ -15,7 +16,7 @@ export function AuthProvider({ children }) {
 
       if (storedToken) {
         try {
-          const res = await fetch('/api/auth/me', {
+          const res = await fetch(getApiUrl('/api/auth/me'), {
             headers: {
               'Authorization': `Bearer ${storedToken}`
             }
@@ -51,7 +52,7 @@ export function AuthProvider({ children }) {
 
   const login = async (username, password) => {
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch(getApiUrl('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
