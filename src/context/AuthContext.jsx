@@ -57,9 +57,16 @@ export function AuthProvider({ children }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
       });
-      const data = await res.json();
+      
+      let data;
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        throw new Error(`Server error (${res.status}): Server backend belum aktif atau tidak merespons.`);
+      }
+
       if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Login failed');
+        throw new Error(data.message || 'Login gagal. Periksa username dan password.');
       }
 
       setToken(data.token);
