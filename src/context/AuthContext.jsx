@@ -57,16 +57,16 @@ export function AuthProvider({ children }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
       });
-      
-      let data;
-      try {
-        data = await res.json();
-      } catch (jsonErr) {
-        throw new Error(`Server error (${res.status}): Server backend belum aktif atau tidak merespons.`);
+
+      // Guard: check response is actually JSON before parsing
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server tidak merespons. Pastikan server backend sudah berjalan (npm run server).');
       }
 
+      const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Login gagal. Periksa username dan password.');
+        throw new Error(data.message || 'Login gagal. Periksa username & password.');
       }
 
       setToken(data.token);
