@@ -601,6 +601,46 @@ export const DEFAULT_VIDEOS = [
     loop: true,
     order: 2,
     scheduleSlot: "Rotasi Teratur"
+  },
+  {
+    id: "vid_03",
+    title: "Dasar Pemrograman PLC & Otomasi Industri Laboratorium",
+    titleEn: "Basics of PLC Programming & Industrial Automation",
+    category: "tutorial",
+    categoryEn: "Tutorial & Labs",
+    categoryName: "Tutorial Praktikum",
+    duration: "10:15",
+    durationSec: 615,
+    url: "https://www.youtube.com/watch?v=UJHOiWA6Cak",
+    thumbnail: "https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?auto=format&fit=crop&w=800&q=80",
+    description: "Panduan praktikum pemrograman ladder diagram PLC Omron dan integrasi modul I/O.",
+    descriptionEn: "Laboratory guide for ladder diagram programming on Omron PLC and digital I/O modules.",
+    featured: false,
+    active: true,
+    isActive: true,
+    loop: true,
+    order: 3,
+    scheduleSlot: "Rotasi Teratur"
+  },
+  {
+    id: "vid_04",
+    title: "Sistem Tenaga Listrik, Gardu Induk & Proteksi Jaringan",
+    titleEn: "Electrical Power Systems, Substations & Network Protection",
+    category: "education",
+    categoryEn: "Educational",
+    categoryName: "Edukasi & Riset",
+    duration: "12:40",
+    durationSec: 760,
+    url: "https://www.youtube.com/watch?v=3ox5D-z9tM0",
+    thumbnail: "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=800&q=80",
+    description: "Pengenalan transmisi tegangan tinggi, transformator daya, dan sistem proteksi jaringan kelistrikan.",
+    descriptionEn: "Introduction to high-voltage transmission, power transformers, and electrical network protection systems.",
+    featured: false,
+    active: true,
+    isActive: true,
+    loop: true,
+    order: 4,
+    scheduleSlot: "Rotasi Teratur"
   }
 ];
 
@@ -715,26 +755,34 @@ export function DataProvider({ children }) {
           }
 
           if (vidData && vidData.length > 0) {
-            setVideos(vidData.map(v => ({
-              id: v.id,
-              title: v.title,
-              titleEn: v.title_en || v.titleEn || v.title,
-              category: v.category || 'safety',
-              categoryEn: v.category_en || v.categoryEn || 'Lab Safety',
-              categoryName: v.category === 'safety' ? 'K3 Laboratorium' : v.category === 'course_promo' ? 'Profil Prodi & Lab' : v.category === 'tutorial' ? 'Tutorial & Panduan' : 'Edukasi Listrik',
-              duration: v.duration || '03:00',
-              durationSec: v.duration_sec || v.durationSec || 180,
-              url: v.url,
-              thumbnail: v.thumbnail || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
-              description: v.description || '',
-              descriptionEn: v.description_en || v.descriptionEn || '',
-              featured: Boolean(v.featured),
-              active: v.active !== false && v.is_active !== false,
-              isActive: v.active !== false && v.is_active !== false && v.isActive !== false,
-              loop: v.loop !== false,
-              order: v.order || 1,
-              scheduleSlot: 'Rotasi Teratur'
-            })));
+            const validVids = vidData
+              .filter(v => v.url && !v.url.startsWith('blob:'))
+              .map(v => ({
+                id: v.id,
+                title: v.title,
+                titleEn: v.title_en || v.titleEn || v.title,
+                category: v.category || 'safety',
+                categoryEn: v.category_en || v.categoryEn || 'Lab Safety',
+                categoryName: v.category === 'safety' ? 'K3 Laboratorium' : v.category === 'course_promo' ? 'Profil Prodi & Lab' : v.category === 'tutorial' ? 'Tutorial & Panduan' : 'Edukasi Listrik',
+                duration: v.duration || '03:00',
+                durationSec: v.duration_sec || v.durationSec || 180,
+                url: v.url,
+                thumbnail: v.thumbnail || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
+                description: v.description || '',
+                descriptionEn: v.description_en || v.descriptionEn || '',
+                featured: Boolean(v.featured),
+                active: v.active !== false && v.is_active !== false,
+                isActive: v.active !== false && v.is_active !== false && v.isActive !== false,
+                loop: v.loop !== false,
+                order: v.order || 1,
+                scheduleSlot: 'Rotasi Teratur'
+              }));
+
+            if (validVids.length > 0) {
+              setVideos(validVids);
+            } else {
+              setVideos(DEFAULT_VIDEOS);
+            }
           }
 
           if (annData && annData.length > 0) {

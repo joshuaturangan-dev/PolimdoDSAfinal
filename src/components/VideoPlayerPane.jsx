@@ -392,6 +392,23 @@ export function VideoPlayerPane() {
     }
   }, [currentVideoIndex, currentVideo?.url, isEmbed]);
 
+  const handleVideoError = useCallback(() => {
+    console.warn("Media playback error on URL:", currentVideo?.url);
+    setHasVideoError(true);
+    const list = activeVideosRef.current;
+    if (list && list.length > 1 && !isTransitioningRef.current) {
+      setTimeout(() => {
+        if (!isTransitioningRef.current) {
+          isTransitioningRef.current = true;
+          triggerNextVideo(true);
+          setTimeout(() => {
+            isTransitioningRef.current = false;
+          }, 1500);
+        }
+      }, 2200);
+    }
+  }, [currentVideo?.url, triggerNextVideo]);
+
   const handleNextVideo = () => {
     triggerNextVideo(false);
   };
@@ -603,7 +620,7 @@ export function VideoPlayerPane() {
                 loop={playbackMode === 'single_loop'}
                 onTimeUpdate={handleTimeUpdate}
                 onEnded={handleVideoEnded}
-                onError={() => setHasVideoError(true)}
+                onError={handleVideoError}
                 className="w-full h-full object-contain bg-black absolute inset-0"
               />
             )}

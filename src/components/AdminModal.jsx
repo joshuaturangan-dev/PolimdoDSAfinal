@@ -119,7 +119,7 @@ export function AdminModal({ onClose }) {
   const [videoPreviewUrl, setVideoPreviewUrl] = useState('');
   const [uploadingThumb, setUploadingThumb] = useState(false);
   const [thumbPreviewUrl, setThumbPreviewUrl] = useState('');
-  const [videoInputTab, setVideoInputTab] = useState('file'); // 'file' or 'url'
+  const [videoInputTab, setVideoInputTab] = useState('url'); // 'url' (permanent cloud/YouTube) or 'file' (local preview)
 
   // Announcement States
   const [annForm, setAnnForm] = useState(null);
@@ -1193,7 +1193,7 @@ export function AdminModal({ onClose }) {
                         setVideoPreviewUrl('');
                         setThumbPreviewUrl('');
                         setVideoUploadInfo(null);
-                        setVideoInputTab('file');
+                        setVideoInputTab('url');
                       }}
                       className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white text-xs font-extrabold shadow-md shadow-cyan-950/40 transition-all"
                     >
@@ -1208,7 +1208,7 @@ export function AdminModal({ onClose }) {
                         <div className="flex items-center gap-2">
                           <Film className="w-4 h-4 text-cyan-400" />
                           <h4 className="text-sm font-extrabold text-white">
-                            {videoForm.id ? 'Edit Video & Jadwal Tayang' : 'Tambah Video dari File / Folder'}
+                            {videoForm.id ? 'Edit Video & Jadwal Tayang' : 'Tambah Video Digital Signage'}
                           </h4>
                         </div>
                         <button 
@@ -1223,44 +1223,48 @@ export function AdminModal({ onClose }) {
                         </button>
                       </div>
 
-                      {/* Video Source Switcher: File Upload vs URL */}
-                      <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
+                      {/* Video Source Switcher: URL (Permanent) vs File Upload (Local Demo) */}
+                      <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-2">
+                        <button
+                          type="button"
+                          onClick={() => setVideoInputTab('url')}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${
+                            videoInputTab === 'url'
+                              ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md shadow-cyan-900/40 border border-cyan-400/40'
+                              : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                          }`}
+                        >
+                          <span>🌟 Link Video YouTube / Drive (Rekomendasi - Aktif 24/7)</span>
+                        </button>
+
                         <button
                           type="button"
                           onClick={() => setVideoInputTab('file')}
                           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${
                             videoInputTab === 'file'
                               ? 'bg-cyan-600 text-white shadow-md'
-                              : 'bg-slate-900 text-slate-400 hover:text-white'
+                              : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
                           }`}
                         >
                           <Upload className="w-3.5 h-3.5" />
-                          <span>📁 Pilih File Video dari Folder (Disarankan)</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setVideoInputTab('url')}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${
-                            videoInputTab === 'url'
-                              ? 'bg-cyan-600 text-white shadow-md'
-                              : 'bg-slate-900 text-slate-400 hover:text-white'
-                          }`}
-                        >
-                          <span>🔗 Masukkan Link URL / Web</span>
+                          <span>📁 File Video Lokal (Preview Saja)</span>
                         </button>
                       </div>
 
                       {/* File Upload Mode */}
                       {videoInputTab === 'file' ? (
                         <div className="space-y-3">
+                          <div className="p-2.5 rounded-lg bg-amber-950/40 border border-amber-500/30 text-amber-300 text-[11px] leading-relaxed">
+                            💡 <strong>Catatan:</strong> File video lokal dari komputer hanya tersimpan sementara di memori browser ini. Untuk display layar signage yang aktif permanen dan tidak hilang saat browser dibuka kembali, gunakan tab <strong>"Link Video YouTube / Drive"</strong>.
+                          </div>
+
                           <label className="block p-4 rounded-xl border-2 border-dashed border-cyan-500/50 bg-cyan-950/20 hover:bg-cyan-950/40 cursor-pointer text-center transition-all group">
                             <Upload className="w-8 h-8 text-cyan-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
                             <span className="text-xs font-black text-cyan-300 block">
                               {uploadingVideo ? 'Mengunggah Video ke Server...' : 'Klik di Sini untuk Memilih File Video dari Folder Anda'}
                             </span>
                             <span className="text-[10px] text-slate-400 block mt-1">
-                              Mendukung format: MP4, WebM, MOV, MKV, AVI (Maksimal hingga 1 GB)
+                              Mendukung format: MP4, WebM, MOV, MKV, AVI
                             </span>
                             <input
                               type="file"
