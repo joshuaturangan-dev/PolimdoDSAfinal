@@ -20,17 +20,55 @@ import {
   X
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.jsx';
-import { useData } from '../context/DataContext.jsx';
+import { useData, DEFAULT_LAB_ZONES } from '../context/DataContext.jsx';
+
+const DEFAULT_ZONE_COORDS = {
+  zone_digital: { x: 15, y: 15, w: 185, h: 310 },
+  zone_otomasi: { x: 210, y: 15, w: 220, h: 310 },
+  zone_bengkel: { x: 440, y: 15, w: 545, h: 425 },
+  zone_instalasi: { x: 15, y: 335, w: 415, h: 105 },
+  zone_pengukuran: { x: 15, y: 450, w: 215, h: 235 },
+  zone_plc: { x: 240, y: 450, w: 275, h: 235 },
+  zone_dosen: { x: 625, y: 495, w: 155, h: 190 },
+  zone_ujicoba: { x: 790, y: 450, w: 195, h: 235 }
+};
 
 export function FloorPlanView({ onOpenMobileView }) {
   const { lang, t } = useLanguage();
   const { labZones } = useData();
 
-  const [selectedZone, setSelectedZone] = useState(labZones[0] || null);
+  // Ensure zones always have coordinates, equipment, and metadata
+  const activeZones = (labZones && labZones.length > 0 ? labZones : DEFAULT_LAB_ZONES).map(z => {
+    const fallback = DEFAULT_LAB_ZONES.find(d => d.id === z.id || d.code === z.code) || {};
+    return {
+      ...fallback,
+      ...z,
+      coords: z.coords || DEFAULT_ZONE_COORDS[z.id] || fallback.coords || { x: 15, y: 15, w: 100, h: 100 },
+      equipment: Array.isArray(z.equipment) && z.equipment.length > 0 ? z.equipment : (fallback.equipment || []),
+      status: z.status || fallback.status || 'available',
+      currentClass: z.currentClass || z.currentActivity || fallback.currentClass || 'Tersedia',
+      capacity: z.capacity || (z.maxCapacity ? `${z.maxCapacity} Mahasiswa` : fallback.capacity) || '24 Mahasiswa',
+      safetyLevel: z.safetyLevel || fallback.safetyLevel || 'Standar K3 Kelistrikan'
+    };
+  });
+
+  const [selectedZone, setSelectedZone] = useState(activeZones[0]);
   const [viewMode, setViewMode] = useState('blueprint'); // 'blueprint' or 'image'
   const [showQrConfigModal, setShowQrConfigModal] = useState(false);
   const [customQrUrl, setCustomQrUrl] = useState('');
   const [networkUrl, setNetworkUrl] = useState('');
+
+  // Keep selectedZone in sync when activeZones update
+  React.useEffect(() => {
+    if (!selectedZone && activeZones.length > 0) {
+      setSelectedZone(activeZones[0]);
+    } else if (selectedZone) {
+      const match = activeZones.find(z => z.id === selectedZone.id);
+      if (match && (match.status !== selectedZone.status || match.currentClass !== selectedZone.currentClass)) {
+        setSelectedZone(match);
+      }
+    }
+  }, [activeZones, selectedZone]);
 
   // Fetch local network IP for real mobile scanning
   React.useEffect(() => {
@@ -221,8 +259,8 @@ export function FloorPlanView({ onOpenMobileView }) {
                   preserveAspectRatio="none"
                 />
 
-                {labZones.map((zone) => {
-                  const { coords } = zone;
+                {activeZones.map((zone) => {
+                  const coords = zone.coords || DEFAULT_ZONE_COORDS[zone.id] || { x: 15, y: 15, w: 100, h: 100 };
                   const isSelected = selectedZone && selectedZone.id === zone.id;
 
                   return (
@@ -312,8 +350,8 @@ export function FloorPlanView({ onOpenMobileView }) {
                 </g>
 
                 {/* Render All 8 Interactive Rooms */}
-                {labZones.map((zone) => {
-                  const { coords } = zone;
+                {activeZones.map((zone) => {
+                  const coords = zone.coords || DEFAULT_ZONE_COORDS[zone.id] || { x: 15, y: 15, w: 100, h: 100 };
                   const theme = getZoneTheme(zone);
                   const isSelected = selectedZone && selectedZone.id === zone.id;
 

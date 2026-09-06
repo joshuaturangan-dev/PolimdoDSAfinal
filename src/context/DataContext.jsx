@@ -3,6 +3,169 @@ import { useAuth } from "./AuthContext.jsx";
 import { getApiUrl } from "../lib/api.js";
 import { supabase } from "../lib/supabaseClient.js";
 
+export const DEFAULT_LAB_ZONES = [
+  {
+    id: "zone_digital",
+    code: "LAB-01",
+    name: "Laboratorium Digital & Mikroprosessor",
+    nameEn: "Digital & Microprocessor Laboratory",
+    type: "laboratory",
+    status: "occupied",
+    currentClass: "D4-TL-3A (Praktikum Rangkaian Digital & Mikro)",
+    capacity: "24 Mahasiswa / 6 Kelompok",
+    equipment: [
+      "Trainer Kit Mikroprosesor 8086 & STM32 ARM Cortex",
+      "Arduino Mega 2560 & ESP32 IoT Development Boards",
+      "Digital Logic Analyzer 16-Channel 100MHz USB",
+      "Catu Daya Digital DC Terisolasi 0-30V / 5A"
+    ],
+    safetyLevel: "5V - 12V DC Digital Safe Voltage Standard",
+    color: "#EF4444",
+    accentColor: "red",
+    coords: { x: 15, y: 15, w: 185, h: 310 }
+  },
+  {
+    id: "zone_otomasi",
+    code: "LAB-02",
+    name: "Laboratorium Otomasi",
+    nameEn: "Industrial Automation Laboratory",
+    type: "laboratory",
+    status: "available",
+    currentClass: "Tersedia (Sesi Siang: D4-TL-7A SCADA & Smart Grid)",
+    capacity: "24 Mahasiswa / 6 Kelompok",
+    equipment: [
+      "SCADA Wonderware InTouch Workstation System",
+      "DCS Industrial Controller Trainer Module",
+      "Modbus TCP/IP & RTU Telemetry Industrial Gateway",
+      "Power Quality Analyzer Fluke 435 Series II"
+    ],
+    safetyLevel: "24V DC Industrial Automation Standard",
+    color: "#FACC15",
+    accentColor: "yellow",
+    coords: { x: 210, y: 15, w: 220, h: 310 }
+  },
+  {
+    id: "zone_bengkel",
+    code: "BENGKEL",
+    name: "Bengkel Listrik",
+    nameEn: "Electrical Workshop & Panel Fabrication",
+    type: "workshop",
+    status: "occupied",
+    currentClass: "D4-TL-5A (Fabrikasi Panel MDP & Wiring Listrik)",
+    capacity: "32 Mahasiswa / 8 Kelompok",
+    equipment: [
+      "Mesin Bending & Pemotong Busbar Cu Hidrolik",
+      "Hydraulic Crimping Tool 16-400mm² & Cable Lug Set",
+      "Meja Kerja Pelat & Perakitan Panel MDP/SDP",
+      "Bor Duduk Industri Heavy Duty & Gerinda"
+    ],
+    safetyLevel: "Wajib APD Lengkap: Safety Shoes, Kacamata, Helm K3",
+    color: "#4F75FF",
+    accentColor: "blue",
+    coords: { x: 440, y: 15, w: 545, h: 425 }
+  },
+  {
+    id: "zone_instalasi",
+    code: "LAB-03",
+    name: "Laboratorium Instalasi Listrik",
+    nameEn: "Electrical Power Installation Laboratory",
+    type: "laboratory",
+    status: "occupied",
+    currentClass: "D4-TL-3A (Praktikum Instalasi Tenaga 1)",
+    capacity: "30 Mahasiswa / 8 Meja Praktikum",
+    equipment: [
+      "Panel Uji Instalasi Penerangan & Gedung Bertingkat",
+      "Panel Kontrol Motor 3-Phasa Forward-Reverse & Star-Delta",
+      "Megger Digital Insulation Tester 1000V MIT420",
+      "Earth Ground Resistance Tester Kyoritsu 4105A"
+    ],
+    safetyLevel: "220V / 380V AC Standard Installation Safety",
+    color: "#F1F5F9",
+    accentColor: "slate",
+    coords: { x: 15, y: 335, w: 415, h: 105 }
+  },
+  {
+    id: "zone_pengukuran",
+    code: "LAB-04",
+    name: "Laboratorium Pengukuran & Elektronika Dasar",
+    nameEn: "Measurement & Basic Electronics Laboratory",
+    type: "laboratory",
+    status: "available",
+    currentClass: "Tersedia (Sesi Berikutnya: D4-TL-1A)",
+    capacity: "24 Mahasiswa / 6 Kelompok",
+    equipment: [
+      "Rigol DS1102Z-E Digital Storage Oscilloscope 100MHz",
+      "Function Generator DDS Audio/RF 25MHz",
+      "Digital Precision Multimeter Sanwa CD800a",
+      "LCR Meter & Dekade Resistor/Kapasitor Presisi"
+    ],
+    safetyLevel: "Electronic Instrument Bench Low Voltage Standard",
+    color: "#06B6D4",
+    accentColor: "cyan",
+    coords: { x: 15, y: 450, w: 215, h: 235 }
+  },
+  {
+    id: "zone_plc",
+    code: "LAB-05",
+    name: "Laboratorium Otomasi & PLC",
+    nameEn: "Automation & PLC Laboratory",
+    type: "laboratory",
+    status: "occupied",
+    currentClass: "D4-TL-5B (Praktikum PLC & Otomasi Industri)",
+    capacity: "24 Mahasiswa / 6 Kelompok",
+    equipment: [
+      "Omron CP1E-N40DR & CJ2M PLC Trainer Kit",
+      "Siemens SIMATIC S7-1200 CPU 1214C DC/DC/DC",
+      "Festo Pneumatic & Electro-Pneumatic Actuator Kit",
+      "Delta HMI Touchscreen Panel 7 Inch & Inverter VFD"
+    ],
+    safetyLevel: "24V DC / Pneumatic 6 Bar Working Pressure",
+    color: "#F97316",
+    accentColor: "orange",
+    coords: { x: 240, y: 450, w: 275, h: 235 }
+  },
+  {
+    id: "zone_dosen",
+    code: "RUANG-DOSEN",
+    name: "Ruangan Dosen",
+    nameEn: "Faculty & Lecturer Office",
+    type: "office",
+    status: "available",
+    currentClass: "Jam Konsultasi & Asistensi: 09:00 - 15:00 WITA",
+    capacity: "10 Dosen & Instruktur Laboratorium",
+    equipment: [
+      "Workstation Komputer Dosen & Sistem Akademik",
+      "Arsip Kurikulum, Silabus & Sertifikasi BNSP",
+      "Pusat Asistensi Laporan Praktikum & Ujian Komprehensif",
+      "Meja Diskusi Bimbingan Tugas Akhir (TA)"
+    ],
+    safetyLevel: "Office Environment / Non-Hazardous Area",
+    color: "#84CC16",
+    accentColor: "lime",
+    coords: { x: 625, y: 495, w: 155, h: 190 }
+  },
+  {
+    id: "zone_ujicoba",
+    code: "RUANG-UJI",
+    name: "Ruangan Uji Coba",
+    nameEn: "High Voltage & Certification Testing Room",
+    type: "testing",
+    status: "available",
+    currentClass: "Uji Kompetensi BNSP & Uji Laik Operasi (PLO)",
+    capacity: "12 Mahasiswa / Peserta Uji Sertifikasi",
+    equipment: [
+      "High Voltage Test Transformer 50kV AC/DC Hipot",
+      "Relay Proteksi OCR/GFR Test Set Sverker 760",
+      "Kamera Thermal Imaging Fluke Ti401 Pro",
+      "Alat Uji Tegangan Tembus Minyak Trafo Otomatis"
+    ],
+    safetyLevel: "High Voltage Hazard: Wajib Izin Instruktur & SOP Khusus",
+    color: "#1D4ED8",
+    accentColor: "blue",
+    coords: { x: 790, y: 450, w: 195, h: 235 }
+  }
+];
+
 const DataContext = createContext();
 
 export function DataProvider({ children }) {
@@ -14,7 +177,7 @@ export function DataProvider({ children }) {
   const [announcements, setAnnouncements] = useState([]);
   const [inventory, setInventory] = useState([]);
   const [bookings, setBookings] = useState([]);
-  const [labZones, setLabZones] = useState([]);
+  const [labZones, setLabZones] = useState(DEFAULT_LAB_ZONES);
   const [loading, setLoading] = useState(true);
 
   // Fetch all data from Supabase Cloud or API
@@ -150,20 +313,22 @@ export function DataProvider({ children }) {
           if (bkData) setBookings(bkData);
 
           if (lzData?.length) {
-            setLabZones(lzData.map(z => ({
-              id: z.id,
-              name: z.name,
-              code: z.code,
-              status: z.status,
-              currentActivity: z.current_activity,
-              currentActivityEn: z.current_activity_en,
-              supervisor: z.supervisor,
-              maxCapacity: z.max_capacity,
-              currentOccupancy: z.current_occupancy,
-              equipmentCount: z.equipment_count,
-              safetyLevel: z.safety_level,
-              bbox: z.bbox
-            })));
+            setLabZones(DEFAULT_LAB_ZONES.map(defaultZone => {
+              const supaZone = lzData.find(z => z.id === defaultZone.id || z.code === defaultZone.code);
+              if (!supaZone) return defaultZone;
+              return {
+                ...defaultZone,
+                status: supaZone.status || defaultZone.status,
+                currentClass: supaZone.current_activity || supaZone.current_activity_en || defaultZone.currentClass,
+                currentActivity: supaZone.current_activity || defaultZone.currentClass,
+                currentActivityEn: supaZone.current_activity_en || defaultZone.currentClass,
+                supervisor: supaZone.supervisor || defaultZone.supervisor,
+                name: supaZone.name || defaultZone.name,
+                code: supaZone.code || defaultZone.code,
+                safetyLevel: supaZone.safety_level || defaultZone.safetyLevel,
+                capacity: supaZone.max_capacity ? `${supaZone.max_capacity} Mahasiswa` : defaultZone.capacity
+              };
+            }));
           }
 
           setLoading(false);
@@ -185,7 +350,18 @@ export function DataProvider({ children }) {
       if (results[3].status === "fulfilled" && results[3].value?.success) setAnnouncements(results[3].value.data);
       if (results[4].status === "fulfilled" && results[4].value?.success) setInventory(results[4].value.data);
       if (results[5].status === "fulfilled" && results[5].value?.success) setBookings(results[5].value.data);
-      if (results[6].status === "fulfilled" && results[6].value?.success) setLabZones(results[6].value.data);
+      if (results[6].status === "fulfilled" && results[6].value?.success && results[6].value.data?.length) {
+        setLabZones(DEFAULT_LAB_ZONES.map(defaultZone => {
+          const apiZone = results[6].value.data.find(z => z.id === defaultZone.id || z.code === defaultZone.code);
+          if (!apiZone) return defaultZone;
+          return {
+            ...defaultZone,
+            ...apiZone,
+            coords: apiZone.coords || defaultZone.coords,
+            equipment: apiZone.equipment || defaultZone.equipment
+          };
+        }));
+      }
     } catch (err) {
       console.error("Failed to fetch data:", err);
     } finally {

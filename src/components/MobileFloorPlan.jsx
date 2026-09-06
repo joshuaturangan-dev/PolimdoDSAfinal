@@ -17,19 +17,55 @@ import {
   Layers
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.jsx';
-import { useData } from '../context/DataContext.jsx';
+import { useData, DEFAULT_LAB_ZONES } from '../context/DataContext.jsx';
 import { BorrowModal } from './BorrowModal.jsx';
+
+const DEFAULT_ZONE_COORDS = {
+  zone_digital: { x: 15, y: 15, w: 185, h: 310 },
+  zone_otomasi: { x: 210, y: 15, w: 220, h: 310 },
+  zone_bengkel: { x: 440, y: 15, w: 545, h: 425 },
+  zone_instalasi: { x: 15, y: 335, w: 415, h: 105 },
+  zone_pengukuran: { x: 15, y: 450, w: 215, h: 235 },
+  zone_plc: { x: 240, y: 450, w: 275, h: 235 },
+  zone_dosen: { x: 625, y: 495, w: 155, h: 190 },
+  zone_ujicoba: { x: 790, y: 450, w: 195, h: 235 }
+};
 
 export function MobileFloorPlan({ onBackToSignage }) {
   const { lang, t } = useLanguage();
   const { labZones, inventory } = useData();
 
-  const [selectedZone, setSelectedZone] = useState(labZones[0] || null);
+  const activeZones = (labZones && labZones.length > 0 ? labZones : DEFAULT_LAB_ZONES).map(z => {
+    const fallback = DEFAULT_LAB_ZONES.find(d => d.id === z.id || d.code === z.code) || {};
+    return {
+      ...fallback,
+      ...z,
+      coords: z.coords || DEFAULT_ZONE_COORDS[z.id] || fallback.coords || { x: 15, y: 15, w: 100, h: 100 },
+      equipment: Array.isArray(z.equipment) && z.equipment.length > 0 ? z.equipment : (fallback.equipment || []),
+      status: z.status || fallback.status || 'available',
+      currentClass: z.currentClass || z.currentActivity || fallback.currentClass || 'Tersedia',
+      capacity: z.capacity || (z.maxCapacity ? `${z.maxCapacity} Mahasiswa` : fallback.capacity) || '24 Mahasiswa',
+      safetyLevel: z.safetyLevel || fallback.safetyLevel || 'Standar K3 Kelistrikan'
+    };
+  });
+
+  const [selectedZone, setSelectedZone] = useState(activeZones[0]);
   const [borrowingItem, setBorrowingItem] = useState(null);
   const [viewMode, setViewMode] = useState('blueprint'); // 'blueprint' or 'image'
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [installPrompt, setInstallPrompt] = useState(null);
   const [isInstalled, setIsInstalled] = useState(false);
+
+  React.useEffect(() => {
+    if (!selectedZone && activeZones.length > 0) {
+      setSelectedZone(activeZones[0]);
+    } else if (selectedZone) {
+      const match = activeZones.find(z => z.id === selectedZone.id);
+      if (match && (match.status !== selectedZone.status || match.currentClass !== selectedZone.currentClass)) {
+        setSelectedZone(match);
+      }
+    }
+  }, [activeZones, selectedZone]);
 
   React.useEffect(() => {
     const handleOnline = () => setIsOnline(true);
