@@ -84,7 +84,28 @@ export function DataProvider({ children }) {
             })));
           }
 
-          if (vidData) setVideos(vidData);
+          if (vidData?.length) {
+            setVideos(vidData.map(v => ({
+              id: v.id,
+              title: v.title,
+              titleEn: v.title_en || v.titleEn || v.title,
+              category: v.category || 'safety',
+              categoryEn: v.category_en || v.categoryEn || 'Lab Safety',
+              categoryName: v.category === 'safety' ? 'K3 Laboratorium' : v.category === 'course_promo' ? 'Profil Prodi & Lab' : v.category === 'tutorial' ? 'Tutorial & Panduan' : 'Edukasi Listrik',
+              duration: v.duration || '03:00',
+              durationSec: v.duration_sec || v.durationSec || 180,
+              url: v.url,
+              thumbnail: v.thumbnail || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
+              description: v.description || '',
+              descriptionEn: v.description_en || v.descriptionEn || '',
+              featured: Boolean(v.featured),
+              active: v.active !== false && v.is_active !== false,
+              isActive: v.active !== false && v.is_active !== false && v.isActive !== false,
+              loop: v.loop !== false,
+              order: v.order || 1,
+              scheduleSlot: 'Rotasi Teratur'
+            })));
+          }
 
           if (annData?.length) {
             setAnnouncements(annData.map(a => ({

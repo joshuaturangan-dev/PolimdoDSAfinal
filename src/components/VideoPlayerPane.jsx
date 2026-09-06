@@ -64,7 +64,8 @@ export function VideoPlayerPane() {
 
   // Filter videos by category
   const activeVideos = videos.filter(v => {
-    if (!v.isActive) return false;
+    const isAct = v.active !== false && v.isActive !== false && v.is_active !== false;
+    if (!isAct) return false;
     if (selectedCategory === 'all') return true;
     return v.category === selectedCategory;
   });
