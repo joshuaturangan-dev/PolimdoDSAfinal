@@ -30,6 +30,14 @@ import { useLanguage } from '../context/LanguageContext.jsx';
 import { useData } from '../context/DataContext.jsx';
 import { parseExcelFile, downloadSampleExcel, exportSchedulesToExcel } from '../utils/excelHelper.js';
 
+function extractYouTubeId(url) {
+  if (!url || typeof url !== 'string') return null;
+  const match = url.trim().match(
+    /(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/|shorts\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+  );
+  return match ? match[1] : null;
+}
+
 export function AdminModal({ onClose }) {
   const { user, isAuthenticated, login, logout } = useAuth();
   const { lang, t } = useLanguage();
@@ -1286,15 +1294,71 @@ export function AdminModal({ onClose }) {
                           )}
                         </div>
                       ) : (
-                        <div>
-                          <label className="text-slate-400 block mb-1 font-bold">URL File Video (Direct MP4 / Stream URL)</label>
-                          <input
-                            type="text"
-                            value={videoForm.url}
-                            onChange={(e) => setVideoForm({ ...videoForm, url: e.target.value })}
-                            className="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-white focus:border-cyan-400"
-                            placeholder="https://domain.com/video.mp4 atau /uploads/videos/..."
-                          />
+                        <div className="space-y-3">
+                          <div>
+                            <label className="text-slate-300 block mb-1 font-bold text-xs">
+                              URL File Video (YouTube Link / Direct MP4 / Google Drive)
+                            </label>
+                            <input
+                              type="text"
+                              value={videoForm.url}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                const ytId = extractYouTubeId(val);
+                                if (ytId) {
+                                  const autoThumb = `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
+                                  setThumbPreviewUrl(autoThumb);
+                                  setVideoForm(prev => prev ? ({
+                                    ...prev,
+                                    url: val,
+                                    thumbnail: prev.thumbnail || autoThumb,
+                                    duration: prev.duration || '03:00'
+                                  }) : prev);
+                                } else {
+                                  setVideoForm(prev => prev ? ({ ...prev, url: val }) : prev);
+                                }
+                              }}
+                              className="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-white focus:border-cyan-400 text-xs font-mono"
+                              placeholder="https://youtu.be/UJHOiWA6Cak atau https://domain.com/video.mp4"
+                            />
+                            {extractYouTubeId(videoForm.url) && (
+                              <span className="text-[10px] text-emerald-400 font-bold mt-1 inline-flex items-center gap-1">
+                                <CheckCircle className="w-3 h-3" />
+                                Terdeteksi Link YouTube (Thumbnail & Auto-Embed Aktif)
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Live Preview for URL mode */}
+                          {videoForm.url && (
+                            <div className="p-3 rounded-xl bg-slate-900 border border-cyan-500/30 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-cyan-300 flex items-center gap-1.5">
+                                  <CheckCircle className="w-4 h-4 text-emerald-400" />
+                                  Pratinjau Video URL
+                                </span>
+                                <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 font-bold text-[10px] border border-emerald-500/40">
+                                  ✓ Siap Diputar
+                                </span>
+                              </div>
+
+                              <div className="aspect-video w-full max-h-48 rounded-lg overflow-hidden bg-black border border-slate-700">
+                                {extractYouTubeId(videoForm.url) ? (
+                                  <iframe
+                                    src={`https://www.youtube.com/embed/${extractYouTubeId(videoForm.url)}?autoplay=0&mute=1&controls=1`}
+                                    className="w-full h-full border-0"
+                                    allowFullScreen
+                                  />
+                                ) : (
+                                  <video
+                                    src={videoForm.url}
+                                    controls
+                                    className="w-full h-full object-contain"
+                                  />
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -1449,25 +1513,32 @@ export function AdminModal({ onClose }) {
                   )}
 
                   <div className="space-y-2">
-                    {videos.map((vid) => (
-                      <div
-                        key={vid.id}
-                        className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between gap-3 text-xs"
-                      >
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={vid.thumbnail}
-                            alt={vid.title}
-                            className="w-16 h-10 rounded-lg object-cover bg-black border border-slate-700 shrink-0"
-                          />
-                          <div>
-                            <span className="text-[10px] font-bold text-cyan-400 uppercase">
-                              {vid.categoryName} • {vid.duration}
-                            </span>
-                            <h5 className="font-bold text-white">{vid.title}</h5>
-                            <p className="text-[10px] text-slate-400">{vid.scheduleSlot}</p>
+                    {videos.map((vid) => {
+                      const vidYtId = extractYouTubeId(vid.url);
+                      const vidThumb = vid.thumbnail || (vidYtId ? `https://img.youtube.com/vi/${vidYtId}/hqdefault.jpg` : "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80");
+
+                      return (
+                        <div
+                          key={vid.id}
+                          className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between gap-3 text-xs"
+                        >
+                          <div className="flex items-center gap-3">
+                            <img
+                              src={vidThumb}
+                              alt={vid.title}
+                              className="w-16 h-10 rounded-lg object-cover bg-black border border-slate-700 shrink-0"
+                              onError={(e) => {
+                                e.target.src = "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80";
+                              }}
+                            />
+                            <div>
+                              <span className="text-[10px] font-bold text-cyan-400 uppercase">
+                                {vid.categoryName} • {vid.duration || '03:00'}
+                              </span>
+                              <h5 className="font-bold text-white line-clamp-1">{vid.title}</h5>
+                              <p className="text-[10px] text-slate-400">{vid.scheduleSlot || 'Rotasi Teratur'}</p>
+                            </div>
                           </div>
-                        </div>
 
                         <div className="flex items-center gap-1.5">
                           <button
@@ -1491,7 +1562,8 @@ export function AdminModal({ onClose }) {
                           </button>
                         </div>
                       </div>
-                    ))}
+                    );
+                  })}
                   </div>
 
                 </div>
