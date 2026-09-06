@@ -3,18 +3,49 @@ import multer from 'multer';
 import * as XLSX from 'xlsx';
 import { getDb, saveDb } from '../db.js';
 import { authenticateToken } from './auth.js';
+import { supabase, isSupabaseConfigured } from '../supabase.js';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
 // GET /api/schedules - list all schedules
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await supabase.from('schedules').select('*');
+      if (data && !error && data.length > 0) {
+        const formatted = data.map(s => ({
+          id: s.id,
+          day: s.day,
+          dayEn: s.day_en,
+          startTime: s.start_time,
+          endTime: s.end_time,
+          courseCode: s.course_code,
+          courseName: s.course_name,
+          courseNameEn: s.course_name_en,
+          lecturer: s.lecturer,
+          className: s.class_name,
+          semester: s.semester,
+          room: s.room,
+          credits: s.credits,
+          topic: s.topic,
+          upcomingTask: s.upcoming_task,
+          academicYear: s.academic_year,
+          color: s.color
+        }));
+        return res.json({ success: true, data: formatted });
+      }
+    } catch (e) {
+      console.warn('Supabase schedules fetch fallback:', e.message);
+    }
+  }
+
   const db = getDb();
   res.json({ success: true, data: db.schedules || [] });
 });
 
 // POST /api/schedules - create new schedule (protected)
-router.post('/', authenticateToken, (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
   const db = getDb();
   const newSchedule = {
     id: `sch_${Date.now()}`,
@@ -30,9 +61,37 @@ router.post('/', authenticateToken, (req, res) => {
     semester: Number(req.body.semester) || 1,
     room: req.body.room || 'Lab Instalasi Listrik',
     credits: Number(req.body.credits) || 3,
+    topic: req.body.topic || '',
+    upcomingTask: req.body.upcomingTask || '',
     academicYear: req.body.academicYear || '2025/2026 Ganjil',
     color: req.body.color || 'blue'
   };
+
+  if (isSupabaseConfigured) {
+    try {
+      await supabase.from('schedules').insert({
+        id: newSchedule.id,
+        day: newSchedule.day,
+        day_en: newSchedule.dayEn,
+        start_time: newSchedule.startTime,
+        end_time: newSchedule.endTime,
+        course_code: newSchedule.courseCode,
+        course_name: newSchedule.courseName,
+        course_name_en: newSchedule.courseNameEn,
+        lecturer: newSchedule.lecturer,
+        class_name: newSchedule.className,
+        semester: newSchedule.semester,
+        room: newSchedule.room,
+        credits: newSchedule.credits,
+        topic: newSchedule.topic,
+        upcoming_task: newSchedule.upcomingTask,
+        academic_year: newSchedule.academicYear,
+        color: newSchedule.color
+      });
+    } catch (e) {
+      console.warn('Supabase schedule insert error:', e.message);
+    }
+  }
 
   db.schedules.push(newSchedule);
   saveDb(db);
@@ -40,7 +99,7 @@ router.post('/', authenticateToken, (req, res) => {
 });
 
 // PUT /api/schedules/:id - update schedule (protected)
-router.put('/:id', authenticateToken, (req, res) => {
+router.put('/:id', authenticateToken, async (req, res) => {
   const db = getDb();
   const index = db.schedules.findIndex(s => s.id === req.params.id);
   if (index === -1) {
@@ -53,18 +112,52 @@ router.put('/:id', authenticateToken, (req, res) => {
     id: req.params.id
   };
 
+  if (isSupabaseConfigured) {
+    try {
+      const s = db.schedules[index];
+      await supabase.from('schedules').update({
+        day: s.day,
+        day_en: s.dayEn,
+        start_time: s.startTime,
+        end_time: s.endTime,
+        course_code: s.courseCode,
+        course_name: s.courseName,
+        course_name_en: s.courseNameEn,
+        lecturer: s.lecturer,
+        class_name: s.className,
+        semester: s.semester,
+        room: s.room,
+        credits: s.credits,
+        topic: s.topic,
+        upcoming_task: s.upcomingTask,
+        academic_year: s.academicYear,
+        color: s.color
+      }).eq('id', req.params.id);
+    } catch (e) {
+      console.warn('Supabase schedule update error:', e.message);
+    }
+  }
+
   saveDb(db);
   res.json({ success: true, message: 'Jadwal berhasil diperbarui', data: db.schedules[index] });
 });
 
 // DELETE /api/schedules/:id - delete schedule (protected)
-router.delete('/:id', authenticateToken, (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
   const db = getDb();
   const initialLen = db.schedules.length;
   db.schedules = db.schedules.filter(s => s.id !== req.params.id);
 
   if (db.schedules.length === initialLen) {
     return res.status(404).json({ success: false, message: 'Jadwal tidak ditemukan' });
+  }
+
+  if (isSupabaseConfigured) {
+    try {
+      await supabase.from('schedules').delete().eq('id', req.params.id);
+    } catch (e) {
+      console.warn('Supabase schedule delete error:', e.message);
+    }
   }
 
   saveDb(db);

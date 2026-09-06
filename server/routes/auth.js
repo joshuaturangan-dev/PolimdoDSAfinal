@@ -1,6 +1,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import { getDb } from '../db.js';
+import { supabase, isSupabaseConfigured } from '../supabase.js';
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'polimdo_lab_signage_secret_2026';
@@ -24,14 +25,37 @@ export function authenticateToken(req, res, next) {
 }
 
 // POST /api/auth/login
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
     return res.status(400).json({ success: false, message: 'Username and password are required' });
   }
 
-  const db = getDb();
-  const user = db.users.find(u => u.username.toLowerCase() === username.trim().toLowerCase() && u.password === password.trim());
+  let user = null;
+
+  // 1. Try Supabase cloud database first
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .ilike('username', username.trim())
+        .eq('password', password.trim())
+        .maybeSingle();
+
+      if (data && !error) {
+        user = data;
+      }
+    } catch (e) {
+      console.warn('Supabase auth check fallback:', e.message);
+    }
+  }
+
+  // 2. Fallback to local DB
+  if (!user) {
+    const db = getDb();
+    user = db.users.find(u => u.username.toLowerCase() === username.trim().toLowerCase() && u.password === password.trim());
+  }
 
   if (!user) {
     return res.status(401).json({ 
