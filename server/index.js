@@ -42,17 +42,24 @@ app.use('/uploads', express.static(uploadDir));
 // Initialize DB with seed on startup
 getDb();
 
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/schedules', scheduleRoutes);
-app.use('/api/faculty', facultyRoutes);
-app.use('/api/videos', videoRoutes);
-app.use('/api/announcements', announcementRoutes);
-app.use('/api/inventory', inventoryRoutes);
-app.use('/api/lab-zones', labZonesRoutes);
+// API Routes (register both /api/* and /* for universal Vercel serverless & local routing)
+const apiRoutes = [
+  ['/auth', authRoutes],
+  ['/schedules', scheduleRoutes],
+  ['/faculty', facultyRoutes],
+  ['/videos', videoRoutes],
+  ['/announcements', announcementRoutes],
+  ['/inventory', inventoryRoutes],
+  ['/lab-zones', labZonesRoutes],
+];
+
+apiRoutes.forEach(([prefix, handler]) => {
+  app.use(`/api${prefix}`, handler);
+  app.use(prefix, handler);
+});
 
 // Network Info endpoint for dynamic QR code generation
-app.get('/api/system/network-info', (req, res) => {
+app.get(['/api/system/network-info', '/system/network-info'], (req, res) => {
   const nets = os.networkInterfaces();
   const ips = [];
   for (const name of Object.keys(nets)) {
@@ -73,7 +80,7 @@ app.get('/api/system/network-info', (req, res) => {
 });
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
+app.get(['/api/health', '/health'], (req, res) => {
   res.json({
     status: 'ok',
     system: 'POLIMDO D4 Electrical Engineering Digital Signage API',
