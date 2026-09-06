@@ -86,23 +86,36 @@ export function MarqueeTicker() {
             </div>
           </div>
 
-          {/* Right: QR Code Access Badge */}
-          <button
+          {/* Right: Permanent Scannable QR Code Card (No Click Required to Scan!) */}
+          <div 
             onClick={() => setShowQrModal(true)}
-            className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-cyan-300 hover:text-white font-extrabold text-xs shadow-lg border border-cyan-500/40 hover:border-cyan-300 shrink-0 transition-all cursor-pointer group hover:scale-[1.03] active:scale-95"
-            title={t('scanWebTitle') || 'Scan QR Code Akses Website'}
+            className="flex items-center gap-2.5 px-2.5 py-1 rounded-xl bg-slate-950/90 border border-cyan-400/50 hover:border-cyan-300 shadow-lg shadow-cyan-950/80 shrink-0 cursor-pointer group transition-all hover:scale-[1.02]"
+            title="Arahkan kamera HP ke QR Code ini untuk scan langsung tanpa klik (Klik untuk memperbesar)"
           >
-            <div className="p-0.5 bg-white rounded shadow-sm group-hover:scale-105 transition-transform">
-              <QRCodeSVG value={webUrl} size={18} level="L" />
+            {/* Direct High-Contrast Scannable QR Code */}
+            <div className="p-1 bg-white rounded-lg shadow-md shrink-0 border border-cyan-300/40 group-hover:ring-2 group-hover:ring-cyan-400/60 transition-all">
+              <QRCodeSVG 
+                value={webUrl} 
+                size={48} 
+                level="M" 
+                includeMargin={false} 
+              />
             </div>
-            <div className="flex items-center gap-1">
-              <Smartphone className="w-3.5 h-3.5 text-cyan-400 group-hover:animate-bounce" />
-              <span className="hidden md:inline whitespace-nowrap text-[11px] font-bold">
-                {t('scanWebAccess') || 'SCAN AKSES WEB'}
+
+            {/* Instruction Labels */}
+            <div className="flex flex-col text-left select-none">
+              <div className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                <span className="text-[11px] font-black text-white tracking-wide uppercase whitespace-nowrap">
+                  SCAN AKSES WEB
+                </span>
+              </div>
+              <span className="text-[9px] font-bold text-cyan-300 whitespace-nowrap flex items-center gap-0.5">
+                <Smartphone className="w-2.5 h-2.5 text-cyan-400" />
+                Kamera HP Langsung
               </span>
-              <span className="md:hidden text-[10px]">QR</span>
             </div>
-          </button>
+          </div>
 
         </div>
       </footer>
