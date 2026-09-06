@@ -1217,8 +1217,20 @@ export function AdminModal({ onClose }) {
                         </button>
                       </div>
 
-                      {/* Video Source Switcher: File Upload (Persistent IndexedDB) vs URL (YouTube/Direct) */}
+                      {/* Video Source Switcher: YouTube (Multi-device) vs File Upload (Local Device) */}
                       <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-2">
+                        <button
+                          type="button"
+                          onClick={() => setVideoInputTab('url')}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${
+                            videoInputTab === 'url'
+                              ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-md shadow-cyan-900/40 border border-cyan-400/40'
+                              : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                          }`}
+                        >
+                          <span>🌟 Link YouTube / Cloud (Bisa Diputar di SEMUA Device & Smart TV)</span>
+                        </button>
+
                         <button
                           type="button"
                           onClick={() => setVideoInputTab('file')}
@@ -1229,19 +1241,7 @@ export function AdminModal({ onClose }) {
                           }`}
                         >
                           <Upload className="w-3.5 h-3.5" />
-                          <span>📁 Upload File Video dari Folder (Tersimpan Permanen)</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setVideoInputTab('url')}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${
-                            videoInputTab === 'url'
-                              ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-md shadow-cyan-900/40 border border-cyan-400/40'
-                              : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-                          }`}
-                        >
-                          <span>🌟 Link Video YouTube / URL Online</span>
+                          <span>📁 Upload File Video dari Komputer (Khusus Layar Ini)</span>
                         </button>
                       </div>
 
@@ -1251,7 +1251,10 @@ export function AdminModal({ onClose }) {
                           <div className="p-2.5 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-[11px] leading-relaxed flex items-start gap-2">
                             <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                             <div>
-                              <strong>Penyimpanan Permanen Aktif:</strong> File video yang diunggah dari laptop/komputer ini tersimpan permanen di penyimpanan peramban (IndexedDB). Video <strong>tidak akan hilang</strong> saat website ditutup, di-refresh, atau dibuka kembali esok hari.
+                              <strong>Penyimpanan Lokal Aktif:</strong> File video tersimpan permanen di penyimpanan peramban (IndexedDB) perangkat ini. Video <strong>tidak akan hilang</strong> saat website ditutup atau di-refresh di laptop/PC ini.
+                              <span className="block text-slate-300 mt-1">
+                                💡 <em>Tips Multi-Device:</em> Jika Anda ingin video otomatis tayang di <strong>Smart TV, HP, atau Komputer lain</strong> tanpa harus upload file ulang ke masing-masing device, gunakan tab <strong>"Link YouTube / Cloud"</strong>.
+                              </span>
                             </div>
                           </div>
 

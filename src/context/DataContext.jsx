@@ -1124,9 +1124,44 @@ export function DataProvider({ children }) {
   const uploadVideoFile = async (file) => {
     try {
       const newId = `vid_${Date.now()}`;
-      // Save permanently into browser IndexedDB
+      const ext = file.name.split('.').pop() || 'mp4';
+      const fileName = `${newId}.${ext}`;
+
+      // 1. Always store locally in IndexedDB first (instant on current device)
       await saveLocalVideoBlob(newId, file);
       const localUrl = URL.createObjectURL(file);
+
+      // 2. Try Supabase Storage Upload if bucket "videos" exists for multi-device sync
+      if (supabase && file.size < 50 * 1024 * 1024) {
+        try {
+          const { data, error } = await supabase.storage
+            .from('videos')
+            .upload(`public/${fileName}`, file, {
+              cacheControl: '3600',
+              upsert: true
+            });
+
+          if (!error && data) {
+            const { data: publicUrlData } = supabase.storage
+              .from('videos')
+              .getPublicUrl(`public/${fileName}`);
+
+            if (publicUrlData && publicUrlData.publicUrl) {
+              return {
+                success: true,
+                id: newId,
+                url: publicUrlData.publicUrl,
+                localBlobUrl: localUrl,
+                fileName: file.name,
+                fileSizeMB: (file.size / (1024 * 1024)).toFixed(2),
+                isCloudUrl: true
+              };
+            }
+          }
+        } catch (storageErr) {
+          console.warn("Supabase Storage upload fallback:", storageErr);
+        }
+      }
 
       return { 
         success: true, 
@@ -1134,7 +1169,8 @@ export function DataProvider({ children }) {
         url: `indexeddb://${newId}`, 
         localBlobUrl: localUrl,
         fileName: file.name,
-        fileSizeMB: (file.size / (1024 * 1024)).toFixed(2)
+        fileSizeMB: (file.size / (1024 * 1024)).toFixed(2),
+        isCloudUrl: false
       };
     } catch (err) {
       console.warn("Local video storage warning:", err);

@@ -634,15 +634,29 @@ export function VideoPlayerPane() {
                 allowFullScreen
               />
             ) : hasVideoError ? (
-              <div className="flex flex-col items-center justify-center p-6 text-center text-slate-400 space-y-2 z-10">
-                <AlertCircle className="w-10 h-10 text-amber-400 animate-pulse" />
-                <p className="text-xs font-bold text-white">Video tidak dapat diputar atau format tidak didukung browser.</p>
-                <button
-                  onClick={() => handleNextVideo()}
-                  className="px-3 py-1 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg shadow-md"
-                >
-                  Putar Video Berikutnya
-                </button>
+              <div className="flex flex-col items-center justify-center p-6 text-center text-slate-300 space-y-3 z-10 max-w-md bg-slate-950/90 rounded-2xl border border-amber-500/30 p-5 shadow-2xl backdrop-blur-md">
+                <AlertCircle className="w-10 h-10 text-amber-400 animate-pulse mx-auto" />
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-white">
+                    {currentVideo.url?.startsWith('indexeddb://')
+                      ? 'Video Tersimpan di Perangkat Lain (Local Storage)'
+                      : 'Video Tidak Dapat Diputar / Format Tidak Didukung'}
+                  </p>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    {currentVideo.url?.startsWith('indexeddb://')
+                      ? 'File video ini diunggah di browser komputer lain. Agar video tayang serentak di SEMUA perangkat (Smart TV, HP, Laptop), gunakan link YouTube (Unlisted) di Panel Admin.'
+                      : 'Gunakan link YouTube (Unlisted) atau direct link video online pada Panel Admin agar dapat diputar di semua perangkat.'}
+                  </p>
+                </div>
+                {activeVideos.length > 1 && (
+                  <button
+                    onClick={() => handleNextVideo()}
+                    className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white text-xs font-extrabold rounded-xl shadow-lg transition-all flex items-center gap-1.5"
+                  >
+                    <span>Putar Video Berikutnya</span>
+                    <SkipForward className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             ) : (
               <video
