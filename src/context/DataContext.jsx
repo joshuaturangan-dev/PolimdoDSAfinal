@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useAuth } from "./AuthContext.jsx";
 import { getApiUrl } from "../lib/api.js";
 import { supabase } from "../lib/supabaseClient.js";
-import { saveLocalVideoBlob, getLocalVideoBlobUrl, deleteLocalVideoBlob } from "../utils/videoStorage.js";
+import { saveLocalVideoBlob, getLocalVideoBlobUrl, deleteLocalVideoBlob, getAllLocalVideoRecords } from "../utils/videoStorage.js";
 
 export const DEFAULT_LAB_ZONES = [
   {
@@ -718,6 +718,40 @@ export function DataProvider({ children }) {
                 })
             );
 
+            // Also check IndexedDB for locally stored videos that might not be synced to Supabase
+            try {
+              const localDbRecords = await getAllLocalVideoRecords();
+              const existingIds = new Set(validVids.map(v => v.id));
+              for (const rec of localDbRecords) {
+                if (rec.id && !existingIds.has(rec.id) && !['vid_01', 'vid_02', 'vid_03', 'vid_04', 'vid_05'].includes(rec.id)) {
+                  const blobUrl = URL.createObjectURL(rec.blob);
+                  validVids.push({
+                    id: rec.id,
+                    title: rec.title || 'Video Praktikum Lokal',
+                    titleEn: rec.titleEn || rec.title || 'Local Practicum Video',
+                    category: rec.category || 'instructional',
+                    categoryEn: rec.categoryEn || 'Instructional & Practicum',
+                    categoryName: 'Tutorial & Panduan',
+                    duration: rec.duration || '03:00',
+                    durationSec: rec.durationSec || 180,
+                    url: blobUrl,
+                    rawUrl: `indexeddb://${rec.id}`,
+                    thumbnail: rec.thumbnail || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
+                    description: rec.description || '',
+                    descriptionEn: rec.descriptionEn || '',
+                    featured: false,
+                    active: true,
+                    isActive: true,
+                    loop: true,
+                    order: 1,
+                    scheduleSlot: 'Rotasi Teratur'
+                  });
+                }
+              }
+            } catch (err) {
+              console.warn('IndexedDB fallback fetch notice:', err);
+            }
+
             setVideos(validVids);
           }
 
@@ -1125,9 +1159,11 @@ export function DataProvider({ children }) {
     const playUrl = videoData.localBlobUrl || videoData.url;
     const persistentUrl = videoData.url?.startsWith('blob:') ? `indexeddb://${newId}` : (videoData.url || `indexeddb://${newId}`);
 
-    // If fileBlob is provided, ensure saved to IndexedDB
-    if (videoData.fileBlob) {
-      await saveLocalVideoBlob(newId, videoData.fileBlob);
+    // Save/update metadata and blob in IndexedDB
+    try {
+      await saveLocalVideoBlob(newId, videoData.fileBlob || null, videoData);
+    } catch (e) {
+      console.warn("IndexedDB save warning:", e);
     }
 
     const newObj = {
@@ -1137,11 +1173,14 @@ export function DataProvider({ children }) {
       rawUrl: persistentUrl
     };
 
-    setVideos(prev => [...prev, newObj]);
+    setVideos(prev => {
+      const filtered = prev.filter(v => v.id !== newId);
+      return [...filtered, newObj];
+    });
 
     if (supabase) {
       try {
-        await supabase.from("videos").insert({
+        await supabase.from("videos").upsert({
           id: newId,
           title: newObj.title,
           title_en: newObj.titleEn || newObj.title,
@@ -1176,30 +1215,39 @@ export function DataProvider({ children }) {
     const persistentUrl = videoData.url?.startsWith('blob:') ? `indexeddb://${id}` : videoData.url;
     const playUrl = videoData.localBlobUrl || videoData.url;
 
-    if (videoData.fileBlob) {
-      await saveLocalVideoBlob(id, videoData.fileBlob);
+    try {
+      await saveLocalVideoBlob(id, videoData.fileBlob || null, videoData);
+    } catch (e) {
+      console.warn("IndexedDB update warning:", e);
     }
 
-    setVideos(prev => prev.map(v => v.id === id ? { ...v, ...videoData, url: playUrl, rawUrl: persistentUrl } : v));
+    setVideos(prev => {
+      const exists = prev.some(v => v.id === id);
+      if (!exists) {
+        return [...prev, { ...videoData, id, url: playUrl, rawUrl: persistentUrl }];
+      }
+      return prev.map(v => v.id === id ? { ...v, ...videoData, url: playUrl, rawUrl: persistentUrl } : v);
+    });
 
     if (supabase) {
       try {
-        await supabase.from("videos").update({
+        await supabase.from("videos").upsert({
+          id: id,
           title: videoData.title,
           title_en: videoData.titleEn || videoData.title,
-          category: videoData.category,
-          category_en: videoData.categoryEn,
-          duration: videoData.duration,
-          duration_sec: videoData.durationSec,
+          category: videoData.category || 'instructional',
+          category_en: videoData.categoryEn || 'Instructional & Practicum',
+          duration: videoData.duration || '03:00',
+          duration_sec: videoData.durationSec || 180,
           url: persistentUrl,
           thumbnail: videoData.thumbnail,
-          description: videoData.description,
-          description_en: videoData.descriptionEn,
-          featured: videoData.featured,
-          active: videoData.active,
-          loop: videoData.loop,
-          order: videoData.order
-        }).eq("id", id);
+          description: videoData.description || '',
+          description_en: videoData.descriptionEn || '',
+          featured: videoData.featured || false,
+          active: videoData.active !== false,
+          loop: videoData.loop !== false,
+          order: videoData.order || 1
+        });
       } catch (e) { console.warn("Supabase video update error:", e); }
     }
 

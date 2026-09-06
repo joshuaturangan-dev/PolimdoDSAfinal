@@ -289,7 +289,8 @@ export function AdminModal({ onClose }) {
         descriptionEn: prev?.descriptionEn || `Practicum & instructional video: ${file.name}`,
         scheduleSlot: prev?.scheduleSlot || 'Rotasi Teratur',
         active: true,
-        featured: false
+        featured: false,
+        isNew: prev?.isNew !== false
       }));
 
       showToast(`Video "${file.name}" (${fileSizeMB} MB) berhasil disimpan permanen!`);
@@ -1174,18 +1175,19 @@ export function AdminModal({ onClose }) {
                         setVideoForm({
                           title: '',
                           titleEn: '',
-                          category: 'course_promo',
+                          category: 'instructional',
                           url: '',
                           thumbnail: '',
                           duration: '03:00',
                           description: '',
                           scheduleSlot: 'Rotasi Teratur',
-                          isActive: true
+                          isActive: true,
+                          isNew: true
                         });
                         setVideoPreviewUrl('');
                         setThumbPreviewUrl('');
                         setVideoUploadInfo(null);
-                        setVideoInputTab('url');
+                        setVideoInputTab('file');
                       }}
                       className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white text-xs font-extrabold shadow-md shadow-cyan-950/40 transition-all"
                     >
@@ -1555,7 +1557,8 @@ export function AdminModal({ onClose }) {
                               alert('Harap isi judul video.');
                               return;
                             }
-                            if (videoForm.id) {
+                            const isExisting = Boolean(videoForm.id && !videoForm.isNew && videos.some(v => v.id === videoForm.id));
+                            if (isExisting) {
                               await updateVideo(videoForm.id, videoForm);
                               showToast('Video berhasil diperbarui!');
                             } else {
@@ -1571,6 +1574,16 @@ export function AdminModal({ onClose }) {
                           {uploadingVideo ? 'Sedang Upload...' : 'Simpan & Tayangkan Video'}
                         </button>
                       </div>
+                    </div>
+                  )}
+
+                  {videos.length === 0 && !videoForm && (
+                    <div className="p-8 rounded-xl bg-slate-950/40 border border-dashed border-slate-800 text-center space-y-2">
+                      <Film className="w-10 h-10 text-slate-600 mx-auto" />
+                      <p className="text-xs font-bold text-slate-300">Belum Ada Video Signage yang Ditambahkan</p>
+                      <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
+                        Klik tombol <strong>"+ Tambah Video Baru"</strong> di atas untuk mengunggah video dari folder laptop/PC Anda atau memasukkan link YouTube.
+                      </p>
                     </div>
                   )}
 
@@ -1604,7 +1617,16 @@ export function AdminModal({ onClose }) {
 
                         <div className="flex items-center gap-1.5">
                           <button
-                            onClick={() => setVideoForm(vid)}
+                            onClick={() => {
+                              setVideoForm({ ...vid, isNew: false });
+                              setVideoPreviewUrl(vid.url);
+                              setThumbPreviewUrl(vid.thumbnail);
+                              if (vid.url?.startsWith('indexeddb://') || vid.url?.startsWith('blob:')) {
+                                setVideoInputTab('file');
+                              } else {
+                                setVideoInputTab('url');
+                              }
+                            }}
                             className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300"
                             title="Edit"
                           >

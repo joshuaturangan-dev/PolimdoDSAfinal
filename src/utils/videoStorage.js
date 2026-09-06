@@ -43,19 +43,55 @@ function getDB() {
  * Saves a local Video File or Blob into IndexedDB permanently
  * @param {string} id - Unique video ID
  * @param {Blob|File} blob - Video file binary
+ * @param {object} meta - Optional metadata (title, duration, thumbnail, etc.)
  * @returns {Promise<boolean>}
  */
-export async function saveLocalVideoBlob(id, blob) {
+export async function saveLocalVideoBlob(id, blob, meta = {}) {
   try {
     const db = await getDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readwrite');
       const store = tx.objectStore(STORE_NAME);
+
+      // If blob is not provided (e.g. metadata-only update), preserve existing blob
+      if (!blob) {
+        const getReq = store.get(id);
+        getReq.onsuccess = () => {
+          const existing = getReq.result || {};
+          const record = {
+            ...existing,
+            id,
+            updatedAt: Date.now(),
+            ...(meta.title ? { title: meta.title } : {}),
+            ...(meta.titleEn ? { titleEn: meta.titleEn } : {}),
+            ...(meta.category ? { category: meta.category } : {}),
+            ...(meta.duration ? { duration: meta.duration } : {}),
+            ...(meta.durationSec ? { durationSec: meta.durationSec } : {}),
+            ...(meta.thumbnail ? { thumbnail: meta.thumbnail } : {}),
+            ...(meta.description ? { description: meta.description } : {}),
+            ...(meta.scheduleSlot ? { scheduleSlot: meta.scheduleSlot } : {})
+          };
+          const putReq = store.put(record);
+          putReq.onsuccess = () => resolve(true);
+          putReq.onerror = (e) => reject(e.target.error);
+        };
+        getReq.onerror = (e) => reject(e.target.error);
+        return;
+      }
+
       const record = {
         id,
         blob,
         updatedAt: Date.now(),
-        type: blob.type || 'video/mp4'
+        type: blob.type || 'video/mp4',
+        title: meta.title || '',
+        titleEn: meta.titleEn || '',
+        category: meta.category || 'instructional',
+        duration: meta.duration || '03:00',
+        durationSec: meta.durationSec || 180,
+        thumbnail: meta.thumbnail || '',
+        description: meta.description || '',
+        scheduleSlot: meta.scheduleSlot || 'Rotasi Teratur'
       };
       const req = store.put(record);
       req.onsuccess = () => resolve(true);
@@ -113,6 +149,28 @@ export async function deleteLocalVideoBlob(id) {
   } catch (err) {
     console.warn('Failed to delete video from IndexedDB:', err);
     return false;
+  }
+}
+
+/**
+ * Retrieves all stored video records from IndexedDB
+ * @returns {Promise<Array>}
+ */
+export async function getAllLocalVideoRecords() {
+  try {
+    const db = await getDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.getAll();
+      req.onsuccess = () => {
+        resolve(req.result || []);
+      };
+      req.onerror = () => resolve([]);
+    });
+  } catch (err) {
+    console.warn('Failed to retrieve all records from IndexedDB:', err);
+    return [];
   }
 }
 
