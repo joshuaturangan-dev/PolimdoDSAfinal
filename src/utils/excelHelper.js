@@ -74,12 +74,12 @@ export function normalizeScheduleRow(row, idx) {
   const cleanEndTime = formatExcelTime(endTime) || '11:30';
 
   const day = row['Hari'] || row['day'] || row['Day'] || 'Senin';
-  const courseCode = row['Kode MK'] || row['Kode'] || row['courseCode'] || row['Code'] || `TL-${4100 + (idx || 0)}`;
+  const courseCode = row['Kode MK'] || row['Kode'] || row['courseCode'] || row['Code'] || '';
   const courseName = row['Mata Kuliah'] || row['courseName'] || row['Mata_Kuliah'] || row['Course'] || row['Nama MK'] || 'Praktikum Kelistrikan';
   const courseNameEn = row['Mata Kuliah (EN)'] || row['courseNameEn'] || courseName;
   const lecturer = row['Dosen'] || row['lecturer'] || row['Dosen Pengampu'] || row['Lecturer'] || row['Pengajar'] || 'Dosen Pengampu';
-  const className = row['Kelas'] || row['className'] || row['Class'] || 'D4-TL-3A';
-  const semester = Number(row['Semester'] || row['semester'] || 3) || 3;
+  const className = row['Kelas'] || row['className'] || row['Class'] || '1_D4_TL1';
+  const semester = Number(row['Semester'] || row['semester'] || 1) || 1;
   const room = row['Ruangan / Meja'] || row['Ruangan'] || row['room'] || row['Room'] || row['Meja'] || 'Lab Instalasi Listrik';
   const credits = Number(row['SKS'] || row['credits'] || row['Credits'] || 3) || 3;
   const topic = row['Materi'] || row['Topik'] || row['topic'] || row['Topic'] || row['Job Sheet'] || '';
@@ -90,7 +90,6 @@ export function normalizeScheduleRow(row, idx) {
     'Jam Mulai': cleanStartTime,
     'Jam Selesai': cleanEndTime,
     'Waktu': `${cleanStartTime} - ${cleanEndTime}`,
-    'Kode MK': courseCode,
     'Mata Kuliah': courseName,
     'Mata Kuliah (EN)': courseNameEn,
     'Dosen': lecturer,
@@ -143,74 +142,101 @@ export function parseExcelFile(file) {
   });
 }
 
-// Generate & Download Sample Template
+// Generate & Download Clean Sample Template for POLIMDO
 export function downloadSampleExcel() {
   const sampleData = [
     {
       "Hari": "Senin",
-      "Jam Mulai": "08:00",
-      "Jam Selesai": "11:30",
-      "Kode MK": "TL-4101",
-      "Mata Kuliah": "Praktikum Instalasi Tenaga Listrik 1",
-      "Mata Kuliah (EN)": "Electrical Power Installation Lab 1",
-      "Dosen": "Dr. Eng. Arthur Sanger, S.T., M.T.",
-      "Kelas": "D4-TL-3A",
-      "Semester": 3,
-      "Ruangan / Meja": "Lab Instalasi Listrik (Meja 1-4)",
+      "Jam Mulai": "07:45",
+      "Jam Selesai": "15:40",
+      "Mata Kuliah": "Praktek Teknologi Mekanik",
+      "Mata Kuliah (EN)": "Mechanical Technology Practice",
+      "Dosen": "Maruto Swatara Loegimin, SST., M.Tr.T",
+      "Kelas": "1_D4_TL1",
+      "Semester": 1,
       "SKS": 3,
-      "Materi": "Job 3: Wiring Motor 3 Phasa Forward-Reverse & Proteksi TOR",
-      "Tugas Mendatang": "Job 4: Pengujian Panel Distribusi & Megger 1000V"
+      "Ruangan / Meja": "Lab Instalasi Listrik",
+      "Materi": "Job 1: Keselamatan Kerja Bengkel & Pengukuran Mekanik Presisi",
+      "Tugas Mendatang": "Job 2: Pembuatan Pola & Fabrikasi Plat Panel Listrik"
     },
     {
       "Hari": "Senin",
-      "Jam Mulai": "13:00",
-      "Jam Selesai": "16:30",
-      "Kode MK": "TL-4205",
+      "Jam Mulai": "07:45",
+      "Jam Selesai": "09:25",
+      "Mata Kuliah": "Fisika Terapan",
+      "Mata Kuliah (EN)": "Applied Physics",
+      "Dosen": "Oldi Lambonan, M.Pd",
+      "Kelas": "1_D4_TL2",
+      "Semester": 1,
+      "SKS": 3,
+      "Ruangan / Meja": "Kelas",
+      "Materi": "Modul 2: Hukum Kelistrikan & Elektromagnetisme Terapan",
+      "Tugas Mendatang": "Latihan Soal Medan Magnet & Gaya Lorentz"
+    },
+    {
+      "Hari": "Selasa",
+      "Jam Mulai": "07:45",
+      "Jam Selesai": "11:30",
       "Mata Kuliah": "Praktikum PLC & Otomasi Industri",
       "Mata Kuliah (EN)": "PLC & Industrial Automation Lab",
       "Dosen": "Ir. Marson Budiman, M.T.",
       "Kelas": "D4-TL-5B",
       "Semester": 5,
+      "SKS": 3,
       "Ruangan / Meja": "Lab PLC & Otomasi (Meja 5-8)",
-      "SKS": 3,
       "Materi": "Modul 5: Pemrograman Ladder Diagram PLC Omron CP1E",
-      "Tugas Mendatang": "Modul 6: Integrasi HMI Touch Screen & Sensor Induktif"
-    },
-    {
-      "Hari": "Selasa",
-      "Jam Mulai": "08:00",
-      "Jam Selesai": "11:30",
-      "Kode MK": "TL-4102",
-      "Mata Kuliah": "Praktikum Rangkaian Listrik & Pengukuran",
-      "Mata Kuliah (EN)": "Electric Circuits & Measurement Lab",
-      "Dosen": "Stevy Walangitan, S.T., M.Eng.",
-      "Kelas": "D4-TL-1A",
-      "Semester": 1,
-      "Ruangan / Meja": "Lab Instalasi Listrik (Meja 1-8)",
-      "SKS": 3,
-      "Materi": "Job 2: Analisis Rangkaian RLC AC 1-Fasa & Pengukuran Osiloskop",
-      "Tugas Mendatang": "Job 3: Pengukuran Daya Aktif & Cos Phi Meter"
+      "Tugas Mendatang": "Modul 6: Integrasi HMI Touchscreen & Sensor Induktif"
     },
     {
       "Hari": "Rabu",
       "Jam Mulai": "08:00",
       "Jam Selesai": "12:00",
-      "Kode MK": "TL-4401",
       "Mata Kuliah": "Praktikum Mesin-Mesin Listrik & Penggerak",
       "Mata Kuliah (EN)": "Electrical Machines & Motor Drives Lab",
-      "Dosen": "Dr. Ventje Rumambi, S.T., M.T.",
-      "Kelas": "D4-TL-3B",
+      "Dosen": "Dr. Eng. Arthur Sanger, S.T., M.T.",
+      "Kelas": "D4-TL-3A",
       "Semester": 3,
-      "Ruangan / Meja": "Lab Mesin Listrik & Generator",
       "SKS": 4,
-      "Materi": "Job 3: Pengujian Karakteristik Beban Generator Sinkron 3 Phasa",
-      "Tugas Mendatang": "Job 4: Pengaturan Kecepatan Motor dengan VFD Inverter"
+      "Ruangan / Meja": "Lab Mesin Listrik & Generator",
+      "Materi": "Uji Karakteristik Motor Induksi 3-Fasa Hubungan Bintang-Segitiga",
+      "Tugas Mendatang": "Perhitungan Efisiensi Mesin & Torsi Motor"
+    },
+    {
+      "Hari": "Kamis",
+      "Jam Mulai": "07:45",
+      "Jam Selesai": "09:45",
+      "Mata Kuliah": "Praktikum Rangkaian Listrik & Pengukuran",
+      "Mata Kuliah (EN)": "Electric Circuits & Measurement Lab",
+      "Dosen": "Stevy Walangitan, S.T., M.Eng.",
+      "Kelas": "D4-TL-1A",
+      "Semester": 1,
+      "SKS": 3,
+      "Ruangan / Meja": "Lab Instalasi Listrik (Meja 1-8)",
+      "Materi": "Analisis Harmonisa & Faktor Daya Sistem 3-Fasa Fluke 435",
+      "Tugas Mendatang": "Plot Osiloskop FFT Frekuensi Tinggi"
     }
   ];
 
   const ws = XLSX.utils.json_to_sheet(sampleData);
+
+  // Set column widths so the sheet opens with perfect readability in Excel
+  ws['!cols'] = [
+    { wch: 12 }, // Hari
+    { wch: 12 }, // Jam Mulai
+    { wch: 12 }, // Jam Selesai
+    { wch: 38 }, // Mata Kuliah
+    { wch: 38 }, // Mata Kuliah (EN)
+    { wch: 38 }, // Dosen
+    { wch: 16 }, // Kelas
+    { wch: 10 }, // Semester
+    { wch: 8 },  // SKS
+    { wch: 30 }, // Ruangan / Meja
+    { wch: 45 }, // Materi
+    { wch: 45 }  // Tugas Mendatang
+  ];
+
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Jadwal Praktikum D4");
+  XLSX.utils.book_append_sheet(wb, ws, "Jadwal Praktikum POLIMDO");
   XLSX.writeFile(wb, "Template_Jadwal_POLIMDO_D4_Teknik_Listrik.xlsx");
 }
 
@@ -221,19 +247,34 @@ export function exportSchedulesToExcel(schedules) {
     "Hari (EN)": s.dayEn || s.day,
     "Jam Mulai": s.startTime,
     "Jam Selesai": s.endTime,
-    "Kode MK": s.courseCode,
     "Mata Kuliah": s.courseName,
     "Mata Kuliah (EN)": s.courseNameEn || s.courseName,
     "Dosen": s.lecturer,
     "Kelas": s.className,
     "Semester": s.semester,
-    "Ruangan / Meja": s.room,
     "SKS": s.credits,
+    "Ruangan / Meja": s.room,
     "Materi": s.topic || '',
     "Tugas Mendatang": s.upcomingTask || ''
   }));
 
   const ws = XLSX.utils.json_to_sheet(exportData);
+  ws['!cols'] = [
+    { wch: 12 },
+    { wch: 12 },
+    { wch: 12 },
+    { wch: 12 },
+    { wch: 38 },
+    { wch: 38 },
+    { wch: 38 },
+    { wch: 16 },
+    { wch: 10 },
+    { wch: 8 },
+    { wch: 30 },
+    { wch: 45 },
+    { wch: 45 }
+  ];
+
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Jadwal Praktikum Aktif");
   XLSX.writeFile(wb, `Jadwal_Lab_Listrik_POLIMDO_${new Date().toISOString().split('T')[0]}.xlsx`);

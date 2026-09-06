@@ -15,13 +15,16 @@ import {
   Activity,
   ListFilter,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  FileSpreadsheet,
+  Download
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { useData, DEFAULT_SCHEDULES } from '../context/DataContext.jsx';
 import { speakText } from '../utils/speechHelper.js';
 import { useAutoScroll } from '../hooks/useAutoScroll.js';
 import { AutoScrollController } from './AutoScrollController.jsx';
+import { downloadSampleExcel } from '../utils/excelHelper.js';
 
 export function ScheduleView() {
   const { lang, t } = useLanguage();
@@ -474,6 +477,15 @@ export function ScheduleView() {
             <Volume2 className="w-3.5 h-3.5 text-cyan-400" />
             <span className="hidden md:inline">{t('voiceReadSchedule')}</span>
           </button>
+
+          <button
+            onClick={downloadSampleExcel}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition-all shrink-0 shadow-sm"
+            title="Download Template Excel Jadwal Kuliah & Praktikum"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden sm:inline">Template Excel</span>
+          </button>
         </div>
 
       </div>
@@ -543,9 +555,6 @@ export function ScheduleView() {
 
                     <h4 className="text-sm font-extrabold text-white leading-snug">
                       {lang === 'id' ? sch.courseName : sch.courseNameEn || sch.courseName}
-                      <span className="text-xs font-mono font-normal text-slate-400 ml-2">
-                        [{sch.courseCode}]
-                      </span>
                     </h4>
 
                     {/* Practicum Job / Task Description */}
