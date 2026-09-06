@@ -18,7 +18,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.jsx';
-import { useData } from '../context/DataContext.jsx';
+import { useData, DEFAULT_SCHEDULES } from '../context/DataContext.jsx';
 import { speakText } from '../utils/speechHelper.js';
 import { useAutoScroll } from '../hooks/useAutoScroll.js';
 import { AutoScrollController } from './AutoScrollController.jsx';
@@ -26,6 +26,8 @@ import { AutoScrollController } from './AutoScrollController.jsx';
 export function ScheduleView() {
   const { lang, t } = useLanguage();
   const { schedules } = useData();
+
+  const scheduleList = (schedules && schedules.length > 0) ? schedules : DEFAULT_SCHEDULES;
 
   // Live timer ticking every 15 seconds
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -84,7 +86,7 @@ export function ScheduleView() {
   const currentMinutes = currentDate.getHours() * 60 + currentDate.getMinutes();
 
   // Find all schedules for today
-  const todaySchedules = schedules.filter(s => s.day === (todayNameId === 'Minggu' || todayNameId === 'Sabtu' ? 'Senin' : todayNameId));
+  const todaySchedules = scheduleList.filter(s => s.day === (todayNameId === 'Minggu' || todayNameId === 'Sabtu' ? 'Senin' : todayNameId));
 
   // Determine current active ongoing class for today
   const currentOngoing = todaySchedules.find(s => {
@@ -118,7 +120,7 @@ export function ScheduleView() {
   }
 
   // Filtered schedules for listing
-  const filteredSchedules = schedules.filter((s) => {
+  const filteredSchedules = scheduleList.filter((s) => {
     if (viewMode === 'today') {
       const activeDayCheck = todayNameId === 'Minggu' || todayNameId === 'Sabtu' ? 'Senin' : todayNameId;
       if (s.day !== activeDayCheck) return false;

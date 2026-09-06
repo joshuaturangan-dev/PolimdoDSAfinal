@@ -1,13 +1,14 @@
 import React from 'react';
 import { AlertCircle, ShieldAlert, Sparkles, Megaphone, Bell } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.jsx';
-import { useData } from '../context/DataContext.jsx';
+import { useData, DEFAULT_ANNOUNCEMENTS } from '../context/DataContext.jsx';
 
 export function MarqueeTicker() {
   const { lang, t } = useLanguage();
   const { announcements } = useData();
 
-  const urgentList = announcements.filter(a => a.isActive);
+  const sourceList = (announcements && announcements.length > 0) ? announcements : DEFAULT_ANNOUNCEMENTS;
+  const urgentList = sourceList.filter(a => a.isActive !== false && a.active !== false && a.is_active !== false);
 
   return (
     <footer className="w-full bg-[#060e1b] border-t border-cyan-500/20 py-2 px-4 shadow-2xl relative overflow-hidden z-30">

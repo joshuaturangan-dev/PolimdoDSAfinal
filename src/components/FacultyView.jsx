@@ -13,7 +13,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.jsx';
-import { useData } from '../context/DataContext.jsx';
+import { useData, DEFAULT_FACULTY } from '../context/DataContext.jsx';
 import { useAutoScroll } from '../hooks/useAutoScroll.js';
 import { AutoScrollController } from './AutoScrollController.jsx';
 
@@ -38,7 +38,9 @@ export function FacultyView() {
     scrollToTop
   } = useAutoScroll({ initialEnabled: true, initialSpeed: 'normal' });
 
-  const filteredFaculty = faculty.filter((f) => {
+  const facultyList = (faculty && faculty.length > 0) ? faculty : DEFAULT_FACULTY;
+
+  const filteredFaculty = facultyList.filter((f) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     const matchName = f.name && f.name.toLowerCase().includes(q);

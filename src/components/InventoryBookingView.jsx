@@ -12,7 +12,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.jsx';
-import { useData } from '../context/DataContext.jsx';
+import { useData, DEFAULT_INVENTORY } from '../context/DataContext.jsx';
 import { BorrowModal } from './BorrowModal.jsx';
 import { useAutoScroll } from '../hooks/useAutoScroll.js';
 import { AutoScrollController } from './AutoScrollController.jsx';
@@ -20,6 +20,8 @@ import { AutoScrollController } from './AutoScrollController.jsx';
 export function InventoryBookingView() {
   const { lang, t } = useLanguage();
   const { inventory } = useData();
+
+  const inventoryList = (inventory && inventory.length > 0) ? inventory : DEFAULT_INVENTORY;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -48,7 +50,7 @@ export function InventoryBookingView() {
     { id: 'K3 / Safety Equipment', name: 'APD & K3' }
   ];
 
-  const filteredItems = inventory.filter((item) => {
+  const filteredItems = inventoryList.filter((item) => {
     if (selectedCategory !== 'all' && item.category !== selectedCategory) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -63,19 +65,20 @@ export function InventoryBookingView() {
   });
 
   const getStatusBadge = (item) => {
-    if (item.status === 'maintenance') {
+    const avail = item.availableStock ?? item.availableQty ?? 0;
+    if (item.status === 'maintenance' || item.condition === 'Rusak') {
       return {
         label: t('itemStatusMaintenance'),
         class: 'bg-amber-500/20 text-amber-400 border-amber-500/40'
       };
     }
-    if (item.availableStock <= 0) {
+    if (avail <= 0) {
       return {
         label: 'Kosong / Dipinjam',
         class: 'bg-red-500/20 text-red-400 border-red-500/40'
       };
     }
-    if (item.availableStock <= 2) {
+    if (avail <= 2) {
       return {
         label: t('itemStatusLow'),
         class: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/40'
@@ -110,10 +113,10 @@ export function InventoryBookingView() {
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${
                   selectedCategory === cat.id
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                    ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white border-cyan-400/50'
+                    : 'bg-slate-900/60 text-slate-400 hover:text-slate-200 border-slate-800'
                 }`}
               >
                 {cat.name}
@@ -136,14 +139,16 @@ export function InventoryBookingView() {
         </div>
       </div>
 
-      {/* Inventory Item Cards */}
+      {/* Grid of Equipment */}
       <div 
-        ref={containerRef} 
-        className="flex-1 overflow-y-auto pr-1 grid grid-cols-1 md:grid-cols-2 gap-3 scroll-smooth"
+        ref={containerRef}
+        className="flex-1 overflow-y-auto pr-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 auto-rows-max scroll-smooth"
       >
         {filteredItems.map((item) => {
+          const availStock = item.availableStock ?? item.availableQty ?? 0;
+          const totStock = item.totalStock ?? item.totalQty ?? 1;
+          const isAvailable = availStock > 0 && item.status !== 'maintenance';
           const status = getStatusBadge(item);
-          const isAvailable = item.availableStock > 0 && item.status !== 'maintenance';
 
           return (
             <div
@@ -178,8 +183,8 @@ export function InventoryBookingView() {
               <div className="mt-3 pt-2.5 border-t border-slate-800 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5 text-xs font-bold">
                   <span className="text-slate-400">Stok:</span>
-                  <span className="text-emerald-400 font-mono font-black">{item.availableStock}</span>
-                  <span className="text-slate-500 font-normal">/ {item.totalStock} {item.unit}</span>
+                  <span className="text-emerald-400 font-mono font-black">{availStock}</span>
+                  <span className="text-slate-500 font-normal">/ {totStock} {item.unit || 'Unit'}</span>
                 </div>
 
                 <button

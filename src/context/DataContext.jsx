@@ -166,19 +166,414 @@ export const DEFAULT_LAB_ZONES = [
   }
 ];
 
+export const DEFAULT_ANNOUNCEMENTS = [
+  {
+    id: "ann_01",
+    title: "Uji Sertifikasi Kompetensi Ahli K3 Listrik & Otomasi BNSP 2026",
+    titleEn: "BNSP Electrical Safety (K3) & Automation Certification Exam 2026",
+    priority: "high",
+    category: "Sertifikasi",
+    categoryEn: "Certification",
+    date: "2026-08-25",
+    content: "Pendaftaran uji sertifikasi kompetensi skema Pemasangan Instalasi Penerangan dan Ahli K3 Listrik dibuka untuk mahasiswa Semester 6 & 8. Kuota subsidi terbatas 50 peserta. Hubungi Kaprodi D4 Teknik Listrik.",
+    contentEn: "Registration for BNSP Electrical Installation and K3 Certification is now open for Semesters 6 & 8 students. Subsidized quota limited to 50 participants. Contact D4 Program Coordinator.",
+    badge: "PENTING / URGENT",
+    isActive: true,
+    active: true
+  },
+  {
+    id: "ann_02",
+    title: "Jadwal Pelaksanaan Ujian Praktikum & Asistensi Laporan Semester Ganjil",
+    titleEn: "Midterm Practicum Exam & Lab Report Assistance Schedule",
+    priority: "high",
+    category: "Akademik",
+    categoryEn: "Academic",
+    date: "2026-09-01",
+    content: "Seluruh praktikan wajib menyelesaikan laporan sementara dan lembar asistensi minimal 80% sebelum mengikuti ujian praktikum. Dilarang membawa barang yang tidak berkepentingan ke ruang lab.",
+    contentEn: "All students must complete temporary reports and lab worksheets at least 80% before taking practical exams. Unauthorized items in the lab are prohibited.",
+    badge: "AKADEMIK",
+    isActive: true,
+    active: true
+  },
+  {
+    id: "ann_03",
+    title: "SOP Wajib: Pemakaian Alat Pelindung Diri (APD) di Area Lab & Bengkel",
+    titleEn: "Mandatory SOP: Personal Protective Equipment (PPE) in Lab Area",
+    priority: "medium",
+    category: "K3 Lab",
+    categoryEn: "Lab Safety",
+    date: "2026-08-20",
+    content: "Setiap mahasiswa dan asisten yang memasuki Lab Instalasi Tenaga dan Bengkel Fabrikasi WAJIB mengenakan Sepatu Safety (Safety Shoes), Jas Lab Katun Anti-Statik, dan kacamata pelindung.",
+    contentEn: "Every student and assistant entering the Power Installation Lab and Workshop MUST wear Safety Shoes, Anti-Static Cotton Lab Coats, and protective glasses.",
+    badge: "SAFETY K3",
+    isActive: true,
+    active: true
+  },
+  {
+    id: "ann_04",
+    title: "Workshop Industrial IoT, SCADA & PLC Bersama Industri Mitra POLIMDO",
+    titleEn: "Industrial IoT, SCADA & PLC Workshop with Industry Partners",
+    priority: "normal",
+    category: "Workshop",
+    categoryEn: "Workshop",
+    date: "2026-09-15",
+    content: "Pusat Studi Otomasi POLIMDO mengadakan pelatihan hands-on PLC SCADA berbasis Cloud dengan sertifikat internasional. Tempat di Lab Otomasi & PLC.",
+    contentEn: "POLIMDO Automation Study Center is holding hands-on Cloud-based PLC SCADA training with international certificates at the Automation & PLC Lab.",
+    badge: "EVENT",
+    isActive: true,
+    active: true
+  }
+];
+
+export const DEFAULT_SCHEDULES = [
+  {
+    id: "sch_01",
+    day: "Senin",
+    dayEn: "Monday",
+    startTime: "07:45",
+    endTime: "10:00",
+    courseCode: "TL-4101",
+    courseName: "Praktikum Instalasi Tenaga Listrik 1",
+    courseNameEn: "Electrical Power Installation Lab 1",
+    lecturer: "Dr. Eng. Arthur Sanger, S.T., M.T.",
+    className: "D4-TL-3A",
+    semester: 3,
+    room: "Lab Instalasi Listrik (Meja 1-4)",
+    credits: 3,
+    topic: "Pengawatan Sirkit Daya & Hubungan Instalasi Penerangan",
+    upcomingTask: "Laporan Asistensi Modul 2",
+    academicYear: "2025/2026 Ganjil",
+    color: "blue"
+  },
+  {
+    id: "sch_02",
+    day: "Selasa",
+    dayEn: "Tuesday",
+    startTime: "07:45",
+    endTime: "09:45",
+    courseCode: "TL-4205",
+    courseName: "Praktikum PLC & Otomasi Industri",
+    courseNameEn: "PLC & Industrial Automation Lab",
+    lecturer: "Ir. Marson Budiman, M.T.",
+    className: "D4-TL-5B",
+    semester: 5,
+    room: "Lab PLC & Otomasi (Meja 5-8)",
+    credits: 3,
+    topic: "Pemrograman Ladder Diagram Timer & Counter Omron CP1E",
+    upcomingTask: "Simulasi CX-Programmer",
+    academicYear: "2025/2026 Ganjil",
+    color: "cyan"
+  },
+  {
+    id: "sch_03",
+    day: "Selasa",
+    dayEn: "Tuesday",
+    startTime: "10:00",
+    endTime: "12:30",
+    courseCode: "TL-4205",
+    courseName: "Praktikum PLC & Otomasi Industri",
+    courseNameEn: "PLC & Industrial Automation Lab",
+    lecturer: "Ir. Marson Budiman, M.T.",
+    className: "D4-TL-5B",
+    semester: 5,
+    room: "Lab PLC & Otomasi (Meja 5-8)",
+    credits: 3,
+    topic: "Integrasi HMI Touchscreen NB5Q dengan SCADA InTouch",
+    upcomingTask: "Desain GUI HMI",
+    academicYear: "2025/2026 Ganjil",
+    color: "emerald"
+  },
+  {
+    id: "sch_04",
+    day: "Rabu",
+    dayEn: "Wednesday",
+    startTime: "07:45",
+    endTime: "11:30",
+    courseCode: "TL-4401",
+    courseName: "Praktikum Mesin-Mesin Listrik & Penggerak",
+    courseNameEn: "Electrical Machines & Motor Drives Lab",
+    lecturer: "Dr. Eng. Arthur Sanger, S.T., M.T.",
+    className: "D4-TL-3A",
+    semester: 3,
+    room: "Lab Mesin Listrik & Generator",
+    credits: 3,
+    topic: "Uji Karakteristik Motor Induksi 3-Fasa Hubungan Bintang-Segitiga",
+    upcomingTask: "Perhitungan Efisiensi Mesin",
+    academicYear: "2025/2026 Ganjil",
+    color: "amber"
+  },
+  {
+    id: "sch_05",
+    day: "Kamis",
+    dayEn: "Thursday",
+    startTime: "07:45",
+    endTime: "09:45",
+    courseCode: "TL-4205",
+    courseName: "Praktikum Rangkaian Listrik & Pengukuran",
+    courseNameEn: "Electric Circuits & Measurement Lab",
+    lecturer: "Stevy Walangitan, S.T., M.Eng.",
+    className: "D4-TL-5B",
+    semester: 7,
+    room: "Lab Instalasi Listrik (Meja 1-8)",
+    credits: 4,
+    topic: "Analisis Harmonisa & Faktor Daya Sistem 3-Fasa Fluke 435",
+    upcomingTask: "Plot Osiloskop FFT",
+    academicYear: "2025/2026 Ganjil",
+    color: "purple"
+  },
+  {
+    id: "sch_06",
+    day: "Kamis",
+    dayEn: "Thursday",
+    startTime: "10:00",
+    endTime: "13:00",
+    courseCode: "TL-4205",
+    courseName: "Praktikum Rangkaian Listrik & Pengukuran",
+    courseNameEn: "Electric Circuits & Measurement Lab",
+    lecturer: "Stevy Walangitan, S.T., M.Eng.",
+    className: "D4-TL-1A",
+    semester: 1,
+    room: "Lab Instalasi Listrik (Meja 1-8)",
+    credits: 3,
+    topic: "Pengukuran Tegangan DC/AC & Hukum Ohm Menggunakan Multimeter Sanwa",
+    upcomingTask: "Tugas Pendahuluan Modul 3",
+    academicYear: "2025/2026 Ganjil",
+    color: "red"
+  },
+  {
+    id: "sch_07",
+    day: "Jumat",
+    dayEn: "Friday",
+    startTime: "07:45",
+    endTime: "12:00",
+    courseCode: "TL-4102",
+    courseName: "Praktikum Mesin-Mesin Listrik & Penggerak",
+    courseNameEn: "Electrical Machines & Motor Drives Lab",
+    lecturer: "Dr. Ventje Rumambi, S.T., M.T.",
+    className: "D4-TL-1A",
+    semester: 1,
+    room: "Lab Mesin Listrik & Generator",
+    credits: 3,
+    topic: "Pengujian Generator Sinkron Tanpa Beban & Berbeban",
+    upcomingTask: "Kurva Eksitasi Generator",
+    academicYear: "2025/2026 Ganjil",
+    color: "yellow"
+  }
+];
+
+export const DEFAULT_FACULTY = [
+  {
+    id: "fac_01",
+    name: "Marson James Budiman, S.ST., M.T.",
+    title: "KETUA JURUSAN TEKNIK ELEKTRO",
+    titleEn: "Head of Electrical Engineering Department",
+    nip: "197405121999031002",
+    nidn: "0012057401",
+    role: "Dosen & Ketua Jurusan",
+    roleEn: "Department Head & Senior Lecturer",
+    email: "marson.budiman@polimdo.ac.id",
+    expertise: "Sistem Kendali & Otomasi Industri / PLC",
+    expertiseEn: "Control Systems & Industrial Automation",
+    room: "Ruang Jurusan Elektro",
+    phone: "+62 812-4456-7890",
+    photo: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+    bio: "Dosen senior bidang Sistem Kontrol dan Otomasi Industri dengan pengalaman lebih dari 20 tahun di Politeknik Negeri Manado."
+  },
+  {
+    id: "fac_02",
+    name: "Maksy Sandiang, S.ST., M.I.T.",
+    title: "SEKRETARIS JURUSAN TEKNIK ELEKTRO",
+    titleEn: "Secretary of Electrical Engineering Department",
+    nip: "197808202003121001",
+    nidn: "0020087802",
+    role: "Dosen & Sekretaris Jurusan",
+    roleEn: "Department Secretary & Lecturer",
+    email: "maksy.sandiang@polimdo.ac.id",
+    expertise: "Teknologi Informasi & Smart Grid",
+    expertiseEn: "Information Technology & Smart Grid",
+    room: "Ruang Jurusan Elektro",
+    phone: "+62 813-5678-9012",
+    photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
+    bio: "Pengampu mata kuliah integrasi IoT kelistrikan dan sistem jaringan monitoring energi."
+  },
+  {
+    id: "fac_03",
+    name: "Donald Bastian Noya, S.ST., M.T.",
+    title: "KOORDINATOR PROGRAM STUDI D-IV TEKNIK LISTRIK",
+    titleEn: "Head of D4 Electrical Power Engineering Study Program",
+    nip: "198002142005011003",
+    nidn: "0014028003",
+    role: "Koordinator Prodi D4",
+    roleEn: "Study Program Coordinator",
+    email: "donald.noya@polimdo.ac.id",
+    expertise: "Sistem Tenaga Listrik & Proteksi Gardu Induk",
+    expertiseEn: "Power Systems & Substation Protection",
+    room: "Ruang Kaprodi D4",
+    phone: "+62 811-4321-9876",
+    photo: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80",
+    bio: "Spesialis analisis kestabilan sistem tenaga listrik, koordinasi relay proteksi, dan audit energi industri."
+  },
+  {
+    id: "fac_04",
+    name: "Dr. Eng. Arthur Sanger, S.T., M.T.",
+    title: "DOSEN PENGAMPU / KEPALA LABORATORIUM LISTRIK",
+    titleEn: "Head of Electrical Lab & Senior Lecturer",
+    nip: "197509182001121002",
+    nidn: "0018097501",
+    role: "Kepala Laboratorium",
+    roleEn: "Head of Electrical Lab",
+    email: "arthur.sanger@polimdo.ac.id",
+    expertise: "Instalasi Tenaga Listrik, K3 & Energi Terbarukan",
+    expertiseEn: "Power Installation, Safety (K3) & Renewable Energy",
+    room: "Ruangan Dosen Lab Elektro",
+    phone: "+62 821-9012-3456",
+    photo: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=400&q=80",
+    bio: "Asesor kompetensi BNSP bidang Ketenagalistrikan dan instruktur utama praktikum instalasi tegangan menengah."
+  }
+];
+
+export const DEFAULT_INVENTORY = [
+  {
+    id: "inv_01",
+    code: "TL-MM-001",
+    name: "Digital Multimeter True-RMS Fluke 179",
+    nameEn: "Fluke 179 True-RMS Digital Multimeter",
+    category: "Alat Ukur / Measurement",
+    categoryEn: "Measurement Tool",
+    totalQty: 12,
+    availableQty: 9,
+    borrowedQty: 3,
+    maintenanceQty: 0,
+    unit: "Unit",
+    location: "Lemari A - Rak 1 (Alat Ukur Presisi)",
+    condition: "Baik",
+    safetyRating: "CAT IV 600V / CAT III 1000V",
+    specs: "AC/DC 1000V, 10A, Frekuensi, Kapasitansi, Suhu Thermocouple",
+    image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=300&q=80"
+  },
+  {
+    id: "inv_02",
+    code: "TL-MEG-002",
+    name: "Insulation Tester / Megger Kyoritsu 3005A",
+    nameEn: "Kyoritsu 3005A Digital Insulation Tester (Megger)",
+    category: "Alat Ukur / Measurement",
+    categoryEn: "Measurement Tool",
+    totalQty: 6,
+    availableQty: 5,
+    borrowedQty: 1,
+    maintenanceQty: 0,
+    unit: "Unit",
+    location: "Lemari A - Rak 2",
+    condition: "Baik",
+    safetyRating: "CAT III 600V",
+    specs: "Tegangan uji 250V / 500V / 1000V, Rentang isolasi hingga 2000MΩ, Continuity test 200mA",
+    image: "https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=300&q=80"
+  },
+  {
+    id: "inv_03",
+    code: "TL-EARTH-003",
+    name: "Earth Resistance Tester Kyoritsu 4105A",
+    nameEn: "Kyoritsu 4105A Earth Resistance Grounding Tester",
+    category: "Alat Ukur / Measurement",
+    categoryEn: "Measurement Tool",
+    totalQty: 5,
+    availableQty: 3,
+    borrowedQty: 2,
+    maintenanceQty: 0,
+    unit: "Set",
+    location: "Lemari A - Rak 3",
+    condition: "Baik",
+    safetyRating: "CAT III 300V IEC 61010-1",
+    specs: "Pengujian pentanahan 20Ω / 200Ω / 2000Ω dengan kabel uji 20m/10m/5m dan batang grounding bantu",
+    image: "https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=300&q=80"
+  },
+  {
+    id: "inv_04",
+    code: "TL-CLAMP-004",
+    name: "Digital AC/DC Clamp Meter Hioki 3280-10F",
+    nameEn: "Hioki 3280-10F Digital AC/DC Clamp Meter",
+    category: "Alat Ukur / Measurement",
+    categoryEn: "Measurement Tool",
+    totalQty: 10,
+    availableQty: 8,
+    borrowedQty: 2,
+    maintenanceQty: 0,
+    unit: "Unit",
+    location: "Lemari A - Rak 1",
+    condition: "Baik",
+    safetyRating: "CAT IV 300V / CAT III 600V",
+    specs: "Arus AC hingga 1000A, Drop-proof 1 meter, Rentang suhu -25°C s.d 65°C",
+    image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=300&q=80"
+  },
+  {
+    id: "inv_05",
+    code: "TL-OSC-005",
+    name: "Digital Storage Oscilloscope Rigol DS1054Z 50MHz 4-CH",
+    nameEn: "Rigol DS1054Z 50MHz 4-Channel Digital Oscilloscope",
+    category: "Instrumentasi / Electronic Bench",
+    categoryEn: "Instrumentation",
+    totalQty: 8,
+    availableQty: 6,
+    borrowedQty: 2,
+    maintenanceQty: 0,
+    unit: "Unit",
+    location: "Meja Praktikum 5-8 (Otomasi)",
+    condition: "Baik",
+    safetyRating: "CAT II 300V",
+    specs: "4 Channel, 50MHz Bandwidth, 1GSa/s Real-time sample rate, 24Mpts memory depth",
+    image: "https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=300&q=80"
+  },
+  {
+    id: "inv_06",
+    code: "TL-PLC-006",
+    name: "PLC Trainer Kit Omron CP1E-N30DR-A + HMI NB5Q",
+    nameEn: "Omron CP1E-N30DR-A PLC Trainer Kit with HMI Touchscreen",
+    category: "Modul Trainer / Automation",
+    categoryEn: "Trainer Module",
+    totalQty: 8,
+    availableQty: 7,
+    borrowedQty: 1,
+    maintenanceQty: 0,
+    unit: "Set",
+    location: "Meja Praktikum 1-4 (Otomasi)",
+    condition: "Baik",
+    safetyRating: "24V DC Industrial Safe Standard",
+    specs: "18 Digital Input, 12 Relay Output, RS-232/USB, Panel simulasi lampu & motor stepper",
+    image: "https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?auto=format&fit=crop&w=300&q=80"
+  },
+  {
+    id: "inv_07",
+    code: "TL-APD-008",
+    name: "Set APD Kelistrikan Tegangan Menengah 1000V (Sarung Tangan + Helm)",
+    nameEn: "1000V Electrical PPE Safety Set (Dielectric Gloves + Visor Helmet)",
+    category: "K3 / Safety Equipment",
+    categoryEn: "Safety Equipment",
+    totalQty: 15,
+    availableQty: 12,
+    borrowedQty: 3,
+    maintenanceQty: 0,
+    unit: "Set",
+    location: "Safety Station - Lemari K3",
+    condition: "Baik",
+    safetyRating: "IEC 60903 Class 0 (1000V AC)",
+    specs: "Sarung tangan isolasi Kelas 0 (1000V AC IEC 60903), Helm insulasi dengan pelindung arc flash",
+    image: "https://images.unsplash.com/photo-1508873696983-2df5293cb32b?auto=format&fit=crop&w=300&q=80"
+  }
+];
+
 const DataContext = createContext();
 
 export function DataProvider({ children }) {
   const { token } = useAuth();
 
-  const [schedules, setSchedules] = useState([]);
-  const [faculty, setFaculty] = useState([]);
+  const [schedules, setSchedules] = useState(DEFAULT_SCHEDULES);
+  const [faculty, setFaculty] = useState(DEFAULT_FACULTY);
   const [videos, setVideos] = useState([]);
-  const [announcements, setAnnouncements] = useState([]);
-  const [inventory, setInventory] = useState([]);
+  const [announcements, setAnnouncements] = useState(DEFAULT_ANNOUNCEMENTS);
+  const [inventory, setInventory] = useState(DEFAULT_INVENTORY);
   const [bookings, setBookings] = useState([]);
   const [labZones, setLabZones] = useState(DEFAULT_LAB_ZONES);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // Fetch all data from Supabase Cloud or API
   const fetchAllData = useCallback(async () => {
@@ -204,50 +599,50 @@ export function DataProvider({ children }) {
             supabase.from("lab_zones").select("*")
           ]);
 
-          if (schData?.length) {
+          if (schData && schData.length > 0) {
             setSchedules(schData.map(s => ({
               id: s.id,
               day: s.day,
-              dayEn: s.day_en,
-              startTime: s.start_time,
-              endTime: s.end_time,
-              courseCode: s.course_code,
-              courseName: s.course_name,
-              courseNameEn: s.course_name_en,
+              dayEn: s.day_en || s.dayEn,
+              startTime: s.start_time || s.startTime,
+              endTime: s.end_time || s.endTime,
+              courseCode: s.course_code || s.courseCode,
+              courseName: s.course_name || s.courseName,
+              courseNameEn: s.course_name_en || s.courseNameEn,
               lecturer: s.lecturer,
-              className: s.class_name,
+              className: s.class_name || s.className,
               semester: s.semester,
               room: s.room,
               credits: s.credits,
               topic: s.topic,
-              upcomingTask: s.upcoming_task,
-              academicYear: s.academic_year,
-              color: s.color
+              upcomingTask: s.upcoming_task || s.upcomingTask,
+              academicYear: s.academic_year || s.academicYear,
+              color: s.color || "blue"
             })));
           }
 
-          if (facData?.length) {
+          if (facData && facData.length > 0) {
             setFaculty(facData.map(f => ({
               id: f.id,
               name: f.name,
               title: f.title,
-              titleEn: f.title_en,
+              titleEn: f.title_en || f.titleEn,
               nip: f.nip,
               nidn: f.nidn,
               role: f.role,
-              roleEn: f.role_en,
+              roleEn: f.role_en || f.roleEn,
               room: f.room,
               email: f.email,
               phone: f.phone,
               expertise: f.expertise,
-              expertiseEn: f.expertise_en,
+              expertiseEn: f.expertise_en || f.expertiseEn,
               photo: f.photo,
               bio: f.bio,
-              bioEn: f.bio_en
+              bioEn: f.bio_en || f.bioEn
             })));
           }
 
-          if (vidData?.length) {
+          if (vidData && vidData.length > 0) {
             setVideos(vidData.map(v => ({
               id: v.id,
               title: v.title,
@@ -270,43 +665,45 @@ export function DataProvider({ children }) {
             })));
           }
 
-          if (annData?.length) {
+          if (annData && annData.length > 0) {
             setAnnouncements(annData.map(a => ({
               id: a.id,
               title: a.title,
-              titleEn: a.title_en,
+              titleEn: a.title_en || a.titleEn || a.title,
               content: a.content,
-              contentEn: a.content_en,
-              priority: a.priority,
-              category: a.category,
-              categoryEn: a.category_en,
-              date: a.date,
-              validUntil: a.valid_until,
-              author: a.author
+              contentEn: a.content_en || a.contentEn || a.content,
+              priority: a.priority || "normal",
+              category: a.category || "Akademik",
+              categoryEn: a.category_en || a.categoryEn || "Academic",
+              badge: a.badge || (a.priority === 'high' ? 'PENTING / URGENT' : (a.category || 'INFO')),
+              date: a.date || new Date().toISOString().split("T")[0],
+              validUntil: a.valid_until || a.validUntil,
+              author: a.author || "Jurusan Teknik Elektro",
+              isActive: a.is_active !== false && a.isActive !== false && a.active !== false,
+              active: a.is_active !== false && a.isActive !== false && a.active !== false
             })));
           }
 
-          if (invData?.length) {
+          if (invData && invData.length > 0) {
             setInventory(invData.map(i => ({
               id: i.id,
               name: i.name,
-              nameEn: i.name_en,
+              nameEn: i.name_en || i.nameEn || i.name,
               code: i.code,
-              category: i.category,
-              categoryEn: i.category_en,
-              brand: i.brand,
-              model: i.model,
-              totalQty: i.total_qty,
-              availableQty: i.available_qty,
-              borrowedQty: i.borrowed_qty,
-              maintenanceQty: i.maintenance_qty,
-              location: i.location,
-              condition: i.condition,
-              specs: i.specs,
-              specsEn: i.specs_en,
-              safetyRating: i.safety_rating,
-              image: i.image,
-              allowedRoles: i.allowed_roles
+              category: i.category || "Alat Ukur / Measurement",
+              categoryEn: i.category_en || i.categoryEn || "Measurement Tool",
+              brand: i.brand || "",
+              model: i.model || "",
+              totalQty: i.total_qty ?? i.totalQty ?? 1,
+              availableQty: i.available_qty ?? i.availableQty ?? 1,
+              borrowedQty: i.borrowed_qty ?? i.borrowedQty ?? 0,
+              maintenanceQty: i.maintenance_qty ?? i.maintenanceQty ?? 0,
+              location: i.location || "Laboratorium Listrik",
+              condition: i.condition || "Baik",
+              specs: i.specs || "",
+              specsEn: i.specs_en || i.specsEn || i.specs || "",
+              safetyRating: i.safety_rating || i.safetyRating || "Standard Safety",
+              image: i.image || "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=300&q=80",
             })));
           }
 
