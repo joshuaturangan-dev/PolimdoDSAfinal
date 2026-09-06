@@ -155,9 +155,7 @@ export function downloadSampleExcel() {
       "Kelas": "1_D4_TL1",
       "Semester": 1,
       "SKS": 3,
-      "Ruangan / Meja": "Lab Instalasi Listrik",
-      "Materi": "Job 1: Keselamatan Kerja Bengkel & Pengukuran Mekanik Presisi",
-      "Tugas Mendatang": "Job 2: Pembuatan Pola & Fabrikasi Plat Panel Listrik"
+      "Ruangan / Meja": "Lab Instalasi Listrik"
     },
     {
       "Hari": "Senin",
@@ -169,9 +167,7 @@ export function downloadSampleExcel() {
       "Kelas": "1_D4_TL2",
       "Semester": 1,
       "SKS": 3,
-      "Ruangan / Meja": "Kelas",
-      "Materi": "Modul 2: Hukum Kelistrikan & Elektromagnetisme Terapan",
-      "Tugas Mendatang": "Latihan Soal Medan Magnet & Gaya Lorentz"
+      "Ruangan / Meja": "Kelas"
     },
     {
       "Hari": "Selasa",
@@ -183,9 +179,7 @@ export function downloadSampleExcel() {
       "Kelas": "D4-TL-5B",
       "Semester": 5,
       "SKS": 3,
-      "Ruangan / Meja": "Lab PLC & Otomasi (Meja 5-8)",
-      "Materi": "Modul 5: Pemrograman Ladder Diagram PLC Omron CP1E",
-      "Tugas Mendatang": "Modul 6: Integrasi HMI Touchscreen & Sensor Induktif"
+      "Ruangan / Meja": "Lab PLC & Otomasi (Meja 5-8)"
     },
     {
       "Hari": "Rabu",
@@ -197,9 +191,7 @@ export function downloadSampleExcel() {
       "Kelas": "D4-TL-3A",
       "Semester": 3,
       "SKS": 4,
-      "Ruangan / Meja": "Lab Mesin Listrik & Generator",
-      "Materi": "Uji Karakteristik Motor Induksi 3-Fasa Hubungan Bintang-Segitiga",
-      "Tugas Mendatang": "Perhitungan Efisiensi Mesin & Torsi Motor"
+      "Ruangan / Meja": "Lab Mesin Listrik & Generator"
     },
     {
       "Hari": "Kamis",
@@ -211,9 +203,7 @@ export function downloadSampleExcel() {
       "Kelas": "D4-TL-1A",
       "Semester": 1,
       "SKS": 3,
-      "Ruangan / Meja": "Lab Instalasi Listrik (Meja 1-8)",
-      "Materi": "Analisis Harmonisa & Faktor Daya Sistem 3-Fasa Fluke 435",
-      "Tugas Mendatang": "Plot Osiloskop FFT Frekuensi Tinggi"
+      "Ruangan / Meja": "Lab Instalasi Listrik (Meja 1-8)"
     }
   ];
 
@@ -224,15 +214,13 @@ export function downloadSampleExcel() {
     { wch: 12 }, // Hari
     { wch: 12 }, // Jam Mulai
     { wch: 12 }, // Jam Selesai
-    { wch: 38 }, // Mata Kuliah
-    { wch: 38 }, // Mata Kuliah (EN)
-    { wch: 38 }, // Dosen
+    { wch: 40 }, // Mata Kuliah
+    { wch: 40 }, // Mata Kuliah (EN)
+    { wch: 40 }, // Dosen
     { wch: 16 }, // Kelas
     { wch: 10 }, // Semester
     { wch: 8 },  // SKS
-    { wch: 30 }, // Ruangan / Meja
-    { wch: 45 }, // Materi
-    { wch: 45 }  // Tugas Mendatang
+    { wch: 32 }  // Ruangan / Meja
   ];
 
   const wb = XLSX.utils.book_new();
@@ -253,9 +241,7 @@ export function exportSchedulesToExcel(schedules) {
     "Kelas": s.className,
     "Semester": s.semester,
     "SKS": s.credits,
-    "Ruangan / Meja": s.room,
-    "Materi": s.topic || '',
-    "Tugas Mendatang": s.upcomingTask || ''
+    "Ruangan / Meja": s.room
   }));
 
   const ws = XLSX.utils.json_to_sheet(exportData);
@@ -264,15 +250,13 @@ export function exportSchedulesToExcel(schedules) {
     { wch: 12 },
     { wch: 12 },
     { wch: 12 },
-    { wch: 38 },
-    { wch: 38 },
-    { wch: 38 },
+    { wch: 40 },
+    { wch: 40 },
+    { wch: 40 },
     { wch: 16 },
     { wch: 10 },
     { wch: 8 },
-    { wch: 30 },
-    { wch: 45 },
-    { wch: 45 }
+    { wch: 32 }
   ];
 
   const wb = XLSX.utils.book_new();

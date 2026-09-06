@@ -303,16 +303,6 @@ export function ScheduleView() {
               <h4 className="text-sm md:text-base font-bold text-white leading-tight truncate">
                 {lang === 'id' ? nextUpcoming.courseName : nextUpcoming.courseNameEn || nextUpcoming.courseName}
               </h4>
-
-              {/* Upcoming Task / Module Description */}
-              <div className="mt-1.5 p-1.5 rounded-lg bg-amber-950/30 border border-amber-500/20 text-[11px] text-amber-200">
-                <span className="font-bold text-amber-400 uppercase text-[9px] block">
-                  {t('upcomingTaskLabel')}:
-                </span>
-                <span className="line-clamp-1">
-                  {nextUpcoming.upcomingTask || nextUpcoming.topic || (lang === 'id' ? 'Materi: Persiapan Job Sheet & Safety Induction' : 'Topic: Job Sheet Preparation & Safety Induction')}
-                </span>
-              </div>
             </div>
 
             <div className="mt-2">
@@ -556,24 +546,6 @@ export function ScheduleView() {
                     <h4 className="text-sm font-extrabold text-white leading-snug">
                       {lang === 'id' ? sch.courseName : sch.courseNameEn || sch.courseName}
                     </h4>
-
-                    {/* Practicum Job / Task Description */}
-                    {(sch.topic || sch.upcomingTask) && (
-                      <div className="mt-1.5 text-xs text-slate-300 bg-slate-900/70 p-2 rounded-lg border border-slate-800">
-                        {sch.topic && (
-                          <div className="flex items-start gap-1.5">
-                            <span className="text-cyan-400 font-bold shrink-0 text-[11px]">Tugas/Materi:</span>
-                            <span className="text-slate-200 font-medium">{sch.topic}</span>
-                          </div>
-                        )}
-                        {sch.upcomingTask && (
-                          <div className="flex items-start gap-1.5 mt-0.5 text-slate-400 text-[11px]">
-                            <span className="text-amber-400 font-bold shrink-0">Tugas Berikutnya:</span>
-                            <span>{sch.upcomingTask}</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </div>
 
                   {/* Right metadata (Lecturer & Room) */}
