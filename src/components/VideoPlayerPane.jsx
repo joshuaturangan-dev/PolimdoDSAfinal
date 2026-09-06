@@ -593,7 +593,7 @@ export function VideoPlayerPane() {
             {/* 1. MEDIA PLAYER (YouTube Embed OR Direct HTML5 Video) */}
             {isEmbed ? (
               <iframe
-                key={`yt-frame-${currentVideo.id || currentVideoIndex}-${ytVideoId || 'embed'}`}
+                key={`embed-${currentVideo.id || currentVideoIndex}-${currentVideo.url}`}
                 ref={iframeRef}
                 src={embedUrl}
                 title={currentVideo.title}
@@ -632,10 +632,10 @@ export function VideoPlayerPane() {
             {/* 2. TOP OVERLAY BADGES (Now Playing, Category & Quick Controls) */}
             <div 
               className={`absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none z-20 transition-opacity duration-300 ${
-                showOverlayControls ? 'opacity-100' : 'opacity-0'
+                showOverlayControls || isEmbed ? 'opacity-100' : 'opacity-0'
               }`}
             >
-              <div className="flex items-center gap-2 pointer-events-auto">
+              <div className="flex flex-wrap items-center gap-1.5 pointer-events-auto">
                 <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/75 backdrop-blur-md border border-cyan-500/40 text-white text-xs font-bold uppercase tracking-wide shadow-lg">
                   <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
                   {t('nowPlaying')}
@@ -644,6 +644,27 @@ export function VideoPlayerPane() {
                 <span className="px-2.5 py-1 rounded-md bg-blue-950/85 backdrop-blur-md border border-blue-500/40 text-blue-300 text-xs font-bold shadow-lg truncate max-w-[180px]">
                   {lang === 'id' ? currentVideo.categoryName : currentVideo.categoryNameEn || currentVideo.categoryName}
                 </span>
+
+                {isEmbed && duration > 0 && (
+                  <span className="px-2.5 py-1 rounded-md bg-slate-950/90 backdrop-blur-md border border-cyan-500/50 text-cyan-300 text-xs font-mono font-bold flex items-center gap-1 shadow-lg">
+                    <Clock className="w-3 h-3 text-cyan-400" />
+                    <span>{formatSec(currentTime)} / {formatSec(duration)}</span>
+                  </span>
+                )}
+
+                {activeVideos.length > 1 && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleNextVideo();
+                    }}
+                    className="px-2 py-1 rounded-md bg-cyan-600/90 hover:bg-cyan-500 text-white text-[11px] font-bold shadow-lg flex items-center gap-1 transition-all border border-cyan-400/40"
+                    title="Lewati dan putar video berikutnya sekarang"
+                  >
+                    <span>Lanjut</span>
+                    <SkipForward className="w-3 h-3" />
+                  </button>
+                )}
 
                 {ytVideoId && (
                   <span className="px-2 py-0.5 rounded-md bg-red-950/80 border border-red-500/50 text-red-300 text-[10px] font-bold hidden sm:inline-flex items-center gap-1">

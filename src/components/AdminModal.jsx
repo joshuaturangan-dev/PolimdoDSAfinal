@@ -1477,15 +1477,50 @@ export function AdminModal({ onClose }) {
                           </select>
                         </div>
 
-                        <div>
-                          <label className="text-slate-300 block mb-1 font-bold">Durasi Video (MM:SS)</label>
-                          <input
-                            type="text"
-                            value={videoForm.duration}
-                            onChange={(e) => setVideoForm({ ...videoForm, duration: e.target.value })}
-                            className="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-white font-mono"
-                            placeholder="03:45"
-                          />
+                        <div className="sm:col-span-2">
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-slate-300 font-bold text-xs">
+                              Durasi Tayang Video (MM:SS) *
+                            </label>
+                            <span className="text-[10px] text-cyan-400">
+                              * Waktu sebelum otomatis lanjut ke video berikutnya
+                            </span>
+                          </div>
+
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                            <input
+                              type="text"
+                              value={videoForm.duration}
+                              onChange={(e) => setVideoForm({ ...videoForm, duration: e.target.value })}
+                              className="w-full sm:w-32 px-3 py-1.5 bg-slate-900 rounded-lg border border-slate-700 text-white font-mono text-center text-xs font-bold"
+                              placeholder="03:00"
+                            />
+
+                            {/* Quick Duration Preset Buttons */}
+                            <div className="flex flex-wrap items-center gap-1">
+                              {[
+                                { label: '30s', val: '00:30' },
+                                { label: '1m', val: '01:00' },
+                                { label: '2m', val: '02:00' },
+                                { label: '3m', val: '03:00' },
+                                { label: '5m', val: '05:00' },
+                                { label: '10m', val: '10:00' }
+                              ].map(p => (
+                                <button
+                                  key={p.val}
+                                  type="button"
+                                  onClick={() => setVideoForm(prev => ({ ...prev, duration: p.val }))}
+                                  className={`px-2 py-1 rounded text-[11px] font-bold border transition-all ${
+                                    videoForm.duration === p.val
+                                      ? 'bg-cyan-600 text-white border-cyan-400 shadow-sm'
+                                      : 'bg-slate-900 text-slate-400 hover:text-white border-slate-700 hover:border-slate-500'
+                                  }`}
+                                >
+                                  {p.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
                         </div>
 
                         <div className="sm:col-span-2">
