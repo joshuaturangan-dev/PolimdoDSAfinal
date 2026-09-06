@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useAuth } from "./AuthContext.jsx";
 import { getApiUrl } from "../lib/api.js";
 import { supabase } from "../lib/supabaseClient.js";
-import { saveLocalVideoBlob, getLocalVideoBlobUrl, deleteLocalVideoBlob, getAllLocalVideoRecords } from "../utils/videoStorage.js";
+import { saveLocalVideoBlob, getLocalVideoBlobUrl, deleteLocalVideoBlob, getAllLocalVideoRecords, parseDurationSeconds } from "../utils/videoStorage.js";
 
 export const DEFAULT_LAB_ZONES = [
   {
@@ -702,7 +702,7 @@ export function DataProvider({ children }) {
                     categoryEn: v.category_en || v.categoryEn || 'Instructional & Practicum',
                     categoryName: v.category === 'safety' || v.category === 'k3_safety' ? 'K3 Laboratorium' : v.category === 'course_promo' ? 'Profil Prodi & Lab' : v.category === 'instructional' || v.category === 'tutorial' ? 'Tutorial & Panduan' : 'Edukasi Listrik',
                     duration: v.duration || '03:00',
-                    durationSec: v.duration_sec || v.durationSec || 180,
+                    durationSec: parseDurationSeconds(v.duration, v.duration_sec || v.durationSec || 180),
                     url: playableUrl,
                     rawUrl: v.url,
                     thumbnail: v.thumbnail || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
@@ -733,7 +733,7 @@ export function DataProvider({ children }) {
                     categoryEn: rec.categoryEn || 'Instructional & Practicum',
                     categoryName: 'Tutorial & Panduan',
                     duration: rec.duration || '03:00',
-                    durationSec: rec.durationSec || 180,
+                    durationSec: parseDurationSeconds(rec.duration, rec.durationSec || 180),
                     url: blobUrl,
                     rawUrl: `indexeddb://${rec.id}`,
                     thumbnail: rec.thumbnail || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
@@ -1194,20 +1194,23 @@ export function DataProvider({ children }) {
     const newId = videoData.id || `vid_${Date.now()}`;
     const playUrl = videoData.localBlobUrl || videoData.url;
     const persistentUrl = videoData.url?.startsWith('blob:') ? `indexeddb://${newId}` : (videoData.url || `indexeddb://${newId}`);
-
-    // Save/update metadata and blob in IndexedDB
-    try {
-      await saveLocalVideoBlob(newId, videoData.fileBlob || null, videoData);
-    } catch (e) {
-      console.warn("IndexedDB save warning:", e);
-    }
+    const finalDurationSec = parseDurationSeconds(videoData.duration, videoData.durationSec || 180);
 
     const newObj = {
       ...videoData,
       id: newId,
+      duration: videoData.duration || '03:00',
+      durationSec: finalDurationSec,
       url: playUrl,
       rawUrl: persistentUrl
     };
+
+    // Save/update metadata and blob in IndexedDB
+    try {
+      await saveLocalVideoBlob(newId, videoData.fileBlob || null, newObj);
+    } catch (e) {
+      console.warn("IndexedDB save warning:", e);
+    }
 
     setVideos(prev => {
       const filtered = prev.filter(v => v.id !== newId);
@@ -1223,7 +1226,7 @@ export function DataProvider({ children }) {
           category: newObj.category || 'instructional',
           category_en: newObj.categoryEn || 'Instructional & Practicum',
           duration: newObj.duration || '03:00',
-          duration_sec: newObj.durationSec || 180,
+          duration_sec: finalDurationSec,
           url: persistentUrl,
           thumbnail: newObj.thumbnail,
           description: newObj.description || '',
@@ -1240,7 +1243,7 @@ export function DataProvider({ children }) {
       await fetch(getApiUrl("/api/videos"), {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify({ ...newObj, url: persistentUrl })
+        body: JSON.stringify({ ...newObj, url: persistentUrl, durationSec: finalDurationSec })
       });
     } catch {}
 
@@ -1250,9 +1253,19 @@ export function DataProvider({ children }) {
   const updateVideo = async (id, videoData) => {
     const persistentUrl = videoData.url?.startsWith('blob:') ? `indexeddb://${id}` : videoData.url;
     const playUrl = videoData.localBlobUrl || videoData.url;
+    const finalDurationSec = parseDurationSeconds(videoData.duration, videoData.durationSec || 180);
+
+    const updatedObj = {
+      ...videoData,
+      id,
+      duration: videoData.duration || '03:00',
+      durationSec: finalDurationSec,
+      url: playUrl,
+      rawUrl: persistentUrl
+    };
 
     try {
-      await saveLocalVideoBlob(id, videoData.fileBlob || null, videoData);
+      await saveLocalVideoBlob(id, videoData.fileBlob || null, updatedObj);
     } catch (e) {
       console.warn("IndexedDB update warning:", e);
     }
@@ -1260,9 +1273,9 @@ export function DataProvider({ children }) {
     setVideos(prev => {
       const exists = prev.some(v => v.id === id);
       if (!exists) {
-        return [...prev, { ...videoData, id, url: playUrl, rawUrl: persistentUrl }];
+        return [...prev, updatedObj];
       }
-      return prev.map(v => v.id === id ? { ...v, ...videoData, url: playUrl, rawUrl: persistentUrl } : v);
+      return prev.map(v => v.id === id ? updatedObj : v);
     });
 
     if (supabase) {
@@ -1274,7 +1287,7 @@ export function DataProvider({ children }) {
           category: videoData.category || 'instructional',
           category_en: videoData.categoryEn || 'Instructional & Practicum',
           duration: videoData.duration || '03:00',
-          duration_sec: videoData.durationSec || 180,
+          duration_sec: finalDurationSec,
           url: persistentUrl,
           thumbnail: videoData.thumbnail,
           description: videoData.description || '',
@@ -1291,7 +1304,7 @@ export function DataProvider({ children }) {
       await fetch(getApiUrl(`/api/videos/${id}`), {
         method: "PUT",
         headers: authHeaders(),
-        body: JSON.stringify({ ...videoData, url: persistentUrl })
+        body: JSON.stringify({ ...updatedObj, url: persistentUrl })
       });
     } catch {}
 

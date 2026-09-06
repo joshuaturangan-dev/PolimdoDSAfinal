@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { useData, DEFAULT_VIDEOS } from '../context/DataContext.jsx';
-import { getLocalVideoBlobUrl } from '../utils/videoStorage.js';
+import { getLocalVideoBlobUrl, parseDurationSeconds } from '../utils/videoStorage.js';
 
 /**
  * Extracts YouTube Video ID from any standard URL format:
@@ -58,23 +58,6 @@ export function extractGoogleDrivePreview(url) {
   const matchId = clean.match(/drive\.google\.com\/(?:open|uc|file)\?(?:.*&)?id=([a-zA-Z0-9_-]+)/);
   if (matchId) return `https://drive.google.com/file/d/${matchId[1]}/preview`;
   return null;
-}
-
-/**
- * Converts duration string (MM:SS or HH:MM:SS) to total seconds
- */
-function parseDurationSeconds(durationStr) {
-  if (!durationStr) return 180;
-  if (typeof durationStr === 'number') return durationStr > 0 ? durationStr : 180;
-  const parts = String(durationStr).trim().split(':').map(Number);
-  if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-    return Math.max(1, parts[0] * 60 + parts[1]);
-  }
-  if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
-    return Math.max(1, parts[0] * 3600 + parts[1] * 60 + parts[2]);
-  }
-  const parsed = parseInt(durationStr, 10);
-  return isNaN(parsed) || parsed <= 0 ? 180 : parsed;
 }
 
 export function VideoPlayerPane() {
@@ -386,7 +369,7 @@ export function VideoPlayerPane() {
   useEffect(() => {
     if (!isEmbed || !isPlaying || !currentVideo) return;
 
-    const targetSec = currentVideo.durationSec || parseDurationSeconds(currentVideo.duration);
+    const targetSec = parseDurationSeconds(currentVideo.duration, currentVideo.durationSec || 180);
     setDuration(targetSec);
     setCurrentTime(0);
 
@@ -408,12 +391,16 @@ export function VideoPlayerPane() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isEmbed, currentVideoIndex, currentVideo?.id, isPlaying, triggerNextVideo]);
+  }, [isEmbed, currentVideoIndex, currentVideo?.id, currentVideo?.duration, currentVideo?.durationSec, isPlaying, triggerNextVideo]);
 
   // When currentVideo changes, reset error and play
   useEffect(() => {
     setHasVideoError(false);
     setCurrentTime(0);
+    if (currentVideo) {
+      const durSec = parseDurationSeconds(currentVideo.duration, currentVideo.durationSec || 180);
+      setDuration(durSec);
+    }
     if (videoRef.current && currentVideo && !isEmbed) {
       videoRef.current.currentTime = 0;
       videoRef.current.load();
@@ -426,7 +413,7 @@ export function VideoPlayerPane() {
         }
       }
     }
-  }, [currentVideoIndex, currentVideo?.url, isEmbed]);
+  }, [currentVideoIndex, currentVideo?.id, currentVideo?.url, currentVideo?.duration, currentVideo?.durationSec, isEmbed, isPlaying]);
 
   const handleVideoError = useCallback(() => {
     console.warn("Media playback error on URL:", currentVideo?.url);

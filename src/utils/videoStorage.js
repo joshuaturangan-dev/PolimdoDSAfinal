@@ -300,3 +300,50 @@ export function extractVideoDuration(file) {
     }
   });
 }
+
+/**
+ * Robustly parses duration string (e.g. "00:30", "30s", "1m", "02:15", "180") into total seconds
+ * @param {string|number} durationStr
+ * @param {number} fallbackSec
+ * @returns {number}
+ */
+export function parseDurationSeconds(durationStr, fallbackSec = 180) {
+  if (typeof durationStr === 'number') {
+    return durationStr > 0 ? durationStr : fallbackSec;
+  }
+  if (!durationStr || typeof durationStr !== 'string') {
+    return fallbackSec;
+  }
+
+  const clean = durationStr.trim().toLowerCase();
+  if (!clean) return fallbackSec;
+
+  // Handle "30s", "1m", "5m"
+  if (clean.endsWith('s')) {
+    const num = parseInt(clean.slice(0, -1), 10);
+    if (!isNaN(num) && num > 0) return num;
+  }
+  if (clean.endsWith('m')) {
+    const num = parseInt(clean.slice(0, -1), 10);
+    if (!isNaN(num) && num > 0) return num * 60;
+  }
+
+  // Handle "MM:SS" or "HH:MM:SS"
+  if (clean.includes(':')) {
+    const parts = clean.split(':').map(p => parseInt(p, 10));
+    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+      return Math.max(1, parts[0] * 60 + parts[1]);
+    }
+    if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+      return Math.max(1, parts[0] * 3600 + parts[1] * 60 + parts[2]);
+    }
+  }
+
+  // Pure integer string "30", "180"
+  const parsed = parseInt(clean, 10);
+  if (!isNaN(parsed) && parsed > 0) {
+    return parsed;
+  }
+
+  return fallbackSec;
+}

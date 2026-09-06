@@ -29,7 +29,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { useData } from '../context/DataContext.jsx';
 import { parseExcelFile, downloadSampleExcel, exportSchedulesToExcel } from '../utils/excelHelper.js';
-import { generateVideoThumbnail, extractVideoDuration } from '../utils/videoStorage.js';
+import { generateVideoThumbnail, extractVideoDuration, parseDurationSeconds } from '../utils/videoStorage.js';
 
 function extractYouTubeId(url) {
   if (!url || typeof url !== 'string') return null;
@@ -1481,9 +1481,16 @@ export function AdminModal({ onClose }) {
                             <input
                               type="text"
                               value={videoForm.duration}
-                              onChange={(e) => setVideoForm({ ...videoForm, duration: e.target.value })}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setVideoForm(prev => ({
+                                  ...prev,
+                                  duration: val,
+                                  durationSec: parseDurationSeconds(val)
+                                }));
+                              }}
                               className="w-full sm:w-32 px-3 py-1.5 bg-slate-900 rounded-lg border border-slate-700 text-white font-mono text-center text-xs font-bold"
-                              placeholder="03:00"
+                              placeholder="00:30"
                             />
 
                             {/* Quick Duration Preset Buttons */}
@@ -1499,7 +1506,11 @@ export function AdminModal({ onClose }) {
                                 <button
                                   key={p.val}
                                   type="button"
-                                  onClick={() => setVideoForm(prev => ({ ...prev, duration: p.val }))}
+                                  onClick={() => setVideoForm(prev => ({
+                                    ...prev,
+                                    duration: p.val,
+                                    durationSec: parseDurationSeconds(p.val)
+                                  }))}
                                   className={`px-2 py-1 rounded text-[11px] font-bold border transition-all ${
                                     videoForm.duration === p.val
                                       ? 'bg-cyan-600 text-white border-cyan-400 shadow-sm'
@@ -1560,12 +1571,17 @@ export function AdminModal({ onClose }) {
                               alert('Harap isi judul video.');
                               return;
                             }
-                            const isExisting = Boolean(videoForm.id && !videoForm.isNew && videos.some(v => v.id === videoForm.id));
+                            const finalSec = parseDurationSeconds(videoForm.duration);
+                            const payload = {
+                              ...videoForm,
+                              durationSec: finalSec
+                            };
+                            const isExisting = Boolean(payload.id && !payload.isNew && videos.some(v => v.id === payload.id));
                             if (isExisting) {
-                              await updateVideo(videoForm.id, videoForm);
+                              await updateVideo(payload.id, payload);
                               showToast('Video berhasil diperbarui!');
                             } else {
-                              await addVideo(videoForm);
+                              await addVideo(payload);
                               showToast('Video berhasil ditambahkan ke jadwal tayang!');
                             }
                             setVideoForm(null);
