@@ -104,7 +104,7 @@ export function VideoPlayerPane() {
   const isTransitioningRef = useRef(false);
   const hideControlsTimerRef = useRef(null);
 
-  const sourceVideos = (videos && videos.length > 0) ? videos : DEFAULT_VIDEOS;
+  const sourceVideos = videos || [];
 
   // Flexible category filtering
   const activeVideos = sourceVideos.filter(v => {
@@ -827,9 +827,12 @@ export function VideoPlayerPane() {
             </div>
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center p-8 text-center text-slate-400">
-            <Film className="w-12 h-12 text-slate-600 mb-2" />
-            <p className="text-sm font-semibold">Tidak ada video dalam kategori ini.</p>
+          <div className="flex flex-col items-center justify-center p-8 text-center text-slate-400 space-y-2">
+            <Film className="w-12 h-12 text-slate-600 mb-1" />
+            <p className="text-sm font-bold text-white">Belum Ada Video Digital Signage</p>
+            <p className="text-xs text-slate-400 max-w-xs">
+              Silakan tambahkan video melalui Panel Admin (Link YouTube, Google Drive, atau MP4).
+            </p>
           </div>
         )}
       </div>

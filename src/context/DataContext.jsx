@@ -561,88 +561,7 @@ export const DEFAULT_INVENTORY = [
   }
 ];
 
-export const DEFAULT_VIDEOS = [
-  {
-    id: "vid_01",
-    title: "Profil Kampus Politeknik Negeri Manado (POLIMDO)",
-    titleEn: "Politeknik Negeri Manado (POLIMDO) Campus Profile",
-    category: "course_promo",
-    categoryEn: "Campus Profile",
-    categoryName: "Profil Prodi & Lab",
-    duration: "06:38",
-    durationSec: 398,
-    url: "https://www.youtube.com/watch?v=0w5_C9uR9-Q",
-    thumbnail: "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=800&q=80",
-    description: "Pengenalan fasilitas unggulan, laboratorium teknik listrik, dan program studi D4 Teknik Listrik Politeknik Negeri Manado.",
-    descriptionEn: "Introduction to premier facilities, electrical engineering laboratories, and D4 study program at POLIMDO.",
-    featured: true,
-    active: true,
-    isActive: true,
-    loop: true,
-    order: 1,
-    scheduleSlot: "Rotasi Teratur"
-  },
-  {
-    id: "vid_02",
-    title: "Penerapan K3 di Laboratorium & Bengkel Listrik POLIMDO",
-    titleEn: "Electrical Laboratory & Workshop Occupational Safety (K3)",
-    category: "safety",
-    categoryEn: "Lab Safety",
-    categoryName: "K3 Laboratorium",
-    duration: "08:22",
-    durationSec: 502,
-    url: "https://www.youtube.com/watch?v=s206fN0iN3s",
-    thumbnail: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80",
-    description: "Standar Operasional Prosedur (SOP) keselamatan kerja, penggunaan alat pelindung diri (APD), dan mitigasi bahaya sengatan listrik.",
-    descriptionEn: "Standard operating procedures for safety, PPE equipment usage, and electrical hazard mitigation in electrical workshops.",
-    featured: true,
-    active: true,
-    isActive: true,
-    loop: true,
-    order: 2,
-    scheduleSlot: "Rotasi Teratur"
-  },
-  {
-    id: "vid_03",
-    title: "Dasar Pemrograman PLC & Otomasi Industri Laboratorium",
-    titleEn: "Basics of PLC Programming & Industrial Automation",
-    category: "tutorial",
-    categoryEn: "Tutorial & Labs",
-    categoryName: "Tutorial Praktikum",
-    duration: "10:15",
-    durationSec: 615,
-    url: "https://www.youtube.com/watch?v=UJHOiWA6Cak",
-    thumbnail: "https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?auto=format&fit=crop&w=800&q=80",
-    description: "Panduan praktikum pemrograman ladder diagram PLC Omron dan integrasi modul I/O.",
-    descriptionEn: "Laboratory guide for ladder diagram programming on Omron PLC and digital I/O modules.",
-    featured: false,
-    active: true,
-    isActive: true,
-    loop: true,
-    order: 3,
-    scheduleSlot: "Rotasi Teratur"
-  },
-  {
-    id: "vid_04",
-    title: "Sistem Tenaga Listrik, Gardu Induk & Proteksi Jaringan",
-    titleEn: "Electrical Power Systems, Substations & Network Protection",
-    category: "education",
-    categoryEn: "Educational",
-    categoryName: "Edukasi & Riset",
-    duration: "12:40",
-    durationSec: 760,
-    url: "https://www.youtube.com/watch?v=3ox5D-z9tM0",
-    thumbnail: "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=800&q=80",
-    description: "Pengenalan transmisi tegangan tinggi, transformator daya, dan sistem proteksi jaringan kelistrikan.",
-    descriptionEn: "Introduction to high-voltage transmission, power transformers, and electrical network protection systems.",
-    featured: false,
-    active: true,
-    isActive: true,
-    loop: true,
-    order: 4,
-    scheduleSlot: "Rotasi Teratur"
-  }
-];
+export const DEFAULT_VIDEOS = [];
 
 export async function fileToBase64(file, maxWidth = 600, quality = 0.85) {
   return new Promise((resolve) => {
@@ -754,9 +673,15 @@ export function DataProvider({ children }) {
             })));
           }
 
-          if (vidData && vidData.length > 0) {
+          if (supabase) {
+            try {
+              await supabase.from("videos").delete().in("id", ["vid_01", "vid_02", "vid_03", "vid_04", "vid_05"]);
+            } catch {}
+          }
+
+          if (vidData) {
             const validVids = vidData
-              .filter(v => v.url && !v.url.startsWith('blob:'))
+              .filter(v => v.url && !v.url.startsWith('blob:') && !['vid_01', 'vid_02', 'vid_03', 'vid_04', 'vid_05'].includes(v.id))
               .map(v => ({
                 id: v.id,
                 title: v.title,
@@ -778,11 +703,7 @@ export function DataProvider({ children }) {
                 scheduleSlot: 'Rotasi Teratur'
               }));
 
-            if (validVids.length > 0) {
-              setVideos(validVids);
-            } else {
-              setVideos(DEFAULT_VIDEOS);
-            }
+            setVideos(validVids);
           }
 
           if (annData && annData.length > 0) {
