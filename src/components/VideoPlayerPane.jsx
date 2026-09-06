@@ -27,7 +27,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.jsx';
-import { useData } from '../context/DataContext.jsx';
+import { useData, DEFAULT_VIDEOS } from '../context/DataContext.jsx';
 
 /**
  * Extracts YouTube Video ID from any standard URL format:
@@ -100,8 +100,10 @@ export function VideoPlayerPane() {
   const isTransitioningRef = useRef(false);
   const hideControlsTimerRef = useRef(null);
 
+  const sourceVideos = (videos && videos.length > 0) ? videos : DEFAULT_VIDEOS;
+
   // Flexible category filtering
-  const activeVideos = videos.filter(v => {
+  const activeVideos = sourceVideos.filter(v => {
     const isAct = v.active !== false && v.isActive !== false && v.is_active !== false;
     if (!isAct) return false;
     if (selectedCategory === 'all') return true;

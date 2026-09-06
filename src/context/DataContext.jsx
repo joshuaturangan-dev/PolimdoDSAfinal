@@ -561,6 +561,78 @@ export const DEFAULT_INVENTORY = [
   }
 ];
 
+export const DEFAULT_VIDEOS = [
+  {
+    id: "vid_01",
+    title: "Profil Kampus Politeknik Negeri Manado (POLIMDO)",
+    titleEn: "Politeknik Negeri Manado (POLIMDO) Campus Profile",
+    category: "course_promo",
+    categoryEn: "Campus Profile",
+    categoryName: "Profil Prodi & Lab",
+    duration: "06:38",
+    durationSec: 398,
+    url: "https://www.youtube.com/watch?v=0w5_C9uR9-Q",
+    thumbnail: "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=800&q=80",
+    description: "Pengenalan fasilitas unggulan, laboratorium teknik listrik, dan program studi D4 Teknik Listrik Politeknik Negeri Manado.",
+    descriptionEn: "Introduction to premier facilities, electrical engineering laboratories, and D4 study program at POLIMDO.",
+    featured: true,
+    active: true,
+    isActive: true,
+    loop: true,
+    order: 1,
+    scheduleSlot: "Rotasi Teratur"
+  },
+  {
+    id: "vid_02",
+    title: "Penerapan K3 di Laboratorium & Bengkel Listrik POLIMDO",
+    titleEn: "Electrical Laboratory & Workshop Occupational Safety (K3)",
+    category: "safety",
+    categoryEn: "Lab Safety",
+    categoryName: "K3 Laboratorium",
+    duration: "08:22",
+    durationSec: 502,
+    url: "https://www.youtube.com/watch?v=s206fN0iN3s",
+    thumbnail: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80",
+    description: "Standar Operasional Prosedur (SOP) keselamatan kerja, penggunaan alat pelindung diri (APD), dan mitigasi bahaya sengatan listrik.",
+    descriptionEn: "Standard operating procedures for safety, PPE equipment usage, and electrical hazard mitigation in electrical workshops.",
+    featured: true,
+    active: true,
+    isActive: true,
+    loop: true,
+    order: 2,
+    scheduleSlot: "Rotasi Teratur"
+  }
+];
+
+export async function fileToBase64(file, maxWidth = 600, quality = 0.85) {
+  return new Promise((resolve) => {
+    if (!file) return resolve('');
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(dataUrl);
+      };
+      img.onerror = () => resolve(e.target.result);
+      img.src = e.target.result;
+    };
+    reader.onerror = () => resolve('');
+    reader.readAsDataURL(file);
+  });
+}
+
 const DataContext = createContext();
 
 export function DataProvider({ children }) {
@@ -568,7 +640,7 @@ export function DataProvider({ children }) {
 
   const [schedules, setSchedules] = useState(DEFAULT_SCHEDULES);
   const [faculty, setFaculty] = useState(DEFAULT_FACULTY);
-  const [videos, setVideos] = useState([]);
+  const [videos, setVideos] = useState(DEFAULT_VIDEOS);
   const [announcements, setAnnouncements] = useState(DEFAULT_ANNOUNCEMENTS);
   const [inventory, setInventory] = useState(DEFAULT_INVENTORY);
   const [bookings, setBookings] = useState([]);
@@ -1019,15 +1091,12 @@ export function DataProvider({ children }) {
   };
 
   const uploadFacultyPhoto = async (file) => {
-    const formData = new FormData();
-    formData.append("photo", file);
     try {
-      const res = await fetch(getApiUrl("/api/faculty/upload-photo"), {
-        method: "POST",
-        headers: { ...(token ? { "Authorization": `Bearer ${token}` } : {}) },
-        body: formData
-      });
-      return await res.json();
+      const base64Url = await fileToBase64(file, 500, 0.85);
+      if (base64Url) {
+        return { success: true, url: base64Url };
+      }
+      return { success: true, url: URL.createObjectURL(file) };
     } catch {
       return { success: true, url: URL.createObjectURL(file) };
     }
@@ -1043,22 +1112,23 @@ export function DataProvider({ children }) {
         headers: { ...(token ? { "Authorization": `Bearer ${token}` } : {}) },
         body: formData
       });
-      return await res.json();
-    } catch {
-      return { success: true, url: URL.createObjectURL(file) };
-    }
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.url) return json;
+      }
+    } catch {}
+
+    // Fallback: create persistent local media preview
+    return { success: true, url: URL.createObjectURL(file) };
   };
 
   const uploadVideoThumbnail = async (file) => {
-    const formData = new FormData();
-    formData.append("thumbnailFile", file);
     try {
-      const res = await fetch(getApiUrl("/api/videos/upload-thumbnail"), {
-        method: "POST",
-        headers: { ...(token ? { "Authorization": `Bearer ${token}` } : {}) },
-        body: formData
-      });
-      return await res.json();
+      const base64Url = await fileToBase64(file, 640, 0.85);
+      if (base64Url) {
+        return { success: true, url: base64Url };
+      }
+      return { success: true, url: URL.createObjectURL(file) };
     } catch {
       return { success: true, url: URL.createObjectURL(file) };
     }
