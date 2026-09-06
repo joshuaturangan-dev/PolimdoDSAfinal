@@ -19,14 +19,18 @@ CREATE TABLE IF NOT EXISTS schedules (
   day_en TEXT,
   start_time TEXT NOT NULL,
   end_time TEXT NOT NULL,
-  course TEXT NOT NULL,
-  course_en TEXT,
-  code TEXT,
+  course_code TEXT,
+  course_name TEXT,
+  course_name_en TEXT,
   lecturer TEXT NOT NULL,
+  class_name TEXT,
+  semester INT,
   room TEXT NOT NULL,
-  class_group TEXT,
-  semester TEXT,
-  session TEXT
+  credits INT DEFAULT 3,
+  topic TEXT,
+  upcoming_task TEXT,
+  academic_year TEXT,
+  color TEXT
 );
 
 -- 3. TABEL PROFIL DOSEN & STAF

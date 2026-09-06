@@ -33,18 +33,22 @@ async function syncAll() {
         day_en: s.dayEn,
         start_time: s.startTime,
         end_time: s.endTime,
-        course: s.course,
-        course_en: s.courseEn,
-        code: s.code,
+        course_code: s.courseCode || s.code,
+        course_name: s.courseName || s.course || 'Praktikum',
+        course_name_en: s.courseNameEn || s.courseEn,
         lecturer: s.lecturer,
+        class_name: s.className || s.classGroup,
+        semester: typeof s.semester === 'number' ? s.semester : parseInt(s.semester) || 1,
         room: s.room,
-        class_group: s.classGroup,
-        semester: s.semester,
-        session: s.session
+        credits: typeof s.credits === 'number' ? s.credits : parseInt(s.credits) || 3,
+        topic: s.topic || '',
+        upcoming_task: s.upcomingTask || '',
+        academic_year: s.academicYear || '2025/2026 Ganjil',
+        color: s.color || 'blue'
       }));
       const { error } = await supabase.from("schedules").upsert(schData);
       if (error) console.error("Error schedules:", error.message);
-      else console.log(`? Schedules tersinkron (${schData.length} jadwal)`);
+      else console.log(`✅ Schedules tersinkron (${schData.length} jadwal kuliah)`);
     }
 
     // 3. Faculty
