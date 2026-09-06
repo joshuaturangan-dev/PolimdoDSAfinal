@@ -49,10 +49,14 @@ function extractYouTubeId(url) {
 /**
  * Extracts Google Drive preview URL from sharing links
  */
-function extractGoogleDrivePreview(url) {
+export function extractGoogleDrivePreview(url) {
   if (!url || typeof url !== 'string') return null;
-  const match = url.trim().match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-  return match ? `https://drive.google.com/file/d/${match[1]}/preview` : null;
+  const clean = url.trim();
+  const matchFile = clean.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (matchFile) return `https://drive.google.com/file/d/${matchFile[1]}/preview`;
+  const matchId = clean.match(/drive\.google\.com\/(?:open|uc|file)\?(?:.*&)?id=([a-zA-Z0-9_-]+)/);
+  if (matchId) return `https://drive.google.com/file/d/${matchId[1]}/preview`;
+  return null;
 }
 
 /**

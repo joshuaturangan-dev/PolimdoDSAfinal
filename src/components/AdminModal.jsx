@@ -38,6 +38,16 @@ function extractYouTubeId(url) {
   return match ? match[1] : null;
 }
 
+function extractGoogleDrivePreview(url) {
+  if (!url || typeof url !== 'string') return null;
+  const clean = url.trim();
+  const matchFile = clean.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (matchFile) return `https://drive.google.com/file/d/${matchFile[1]}/preview`;
+  const matchId = clean.match(/drive\.google\.com\/(?:open|uc|file)\?(?:.*&)?id=([a-zA-Z0-9_-]+)/);
+  if (matchId) return `https://drive.google.com/file/d/${matchId[1]}/preview`;
+  return null;
+}
+
 export function AdminModal({ onClose }) {
   const { user, isAuthenticated, login, logout } = useAuth();
   const { lang, t } = useLanguage();
@@ -1323,14 +1333,35 @@ export function AdminModal({ onClose }) {
                                 }
                               }}
                               className="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-white focus:border-cyan-400 text-xs font-mono"
-                              placeholder="https://youtu.be/UJHOiWA6Cak atau https://domain.com/video.mp4"
+                              placeholder="https://drive.google.com/file/d/.../view atau https://youtu.be/..."
                             />
+
                             {extractYouTubeId(videoForm.url) && (
-                              <span className="text-[10px] text-emerald-400 font-bold mt-1 inline-flex items-center gap-1">
-                                <CheckCircle className="w-3 h-3" />
-                                Terdeteksi Link YouTube (Thumbnail & Auto-Embed Aktif)
+                              <span className="text-[10px] text-emerald-400 font-bold mt-1.5 inline-flex items-center gap-1">
+                                <CheckCircle className="w-3.5 h-3.5" />
+                                Terdeteksi Link YouTube (Thumbnail Otomatis & Pemutar Siap)
                               </span>
                             )}
+
+                            {extractGoogleDrivePreview(videoForm.url) && (
+                              <span className="text-[10px] text-emerald-400 font-bold mt-1.5 inline-flex items-center gap-1">
+                                <CheckCircle className="w-3.5 h-3.5" />
+                                Terdeteksi Link Google Drive (Mode Embed Pratinjau Siap)
+                              </span>
+                            )}
+
+                            {/* Google Drive & YouTube Sharing Guide Box */}
+                            <div className="mt-2 p-2.5 rounded-lg bg-blue-950/40 border border-blue-500/30 text-[11px] text-blue-200 space-y-1">
+                              <span className="font-bold text-cyan-300 block">
+                                📌 Cara Mengambil Link Google Drive yang Benar:
+                              </span>
+                              <ol className="list-decimal list-inside space-y-0.5 text-[10.5px] text-slate-300 pl-1">
+                                <li>Buka <strong>Google Drive</strong> dan pilih file video Anda.</li>
+                                <li>Klik kanan pada video → pilih <strong>Bagikan (Share)</strong>.</li>
+                                <li>Ubah Akses Umum (*General Access*) menjadi <strong>"Siapa saja yang memiliki link" (*Anyone with the link*)</strong>.</li>
+                                <li>Klik <strong>Salin Link (*Copy Link*)</strong> lalu tempelkan ke kolom URL di atas.</li>
+                              </ol>
+                            </div>
                           </div>
 
                           {/* Live Preview for URL mode */}
@@ -1351,6 +1382,13 @@ export function AdminModal({ onClose }) {
                                   <iframe
                                     src={`https://www.youtube.com/embed/${extractYouTubeId(videoForm.url)}?autoplay=0&mute=1&controls=1`}
                                     className="w-full h-full border-0"
+                                    allowFullScreen
+                                  />
+                                ) : extractGoogleDrivePreview(videoForm.url) ? (
+                                  <iframe
+                                    src={extractGoogleDrivePreview(videoForm.url)}
+                                    className="w-full h-full border-0"
+                                    allow="autoplay"
                                     allowFullScreen
                                   />
                                 ) : (
