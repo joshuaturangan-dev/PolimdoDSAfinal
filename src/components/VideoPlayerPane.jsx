@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { useData, DEFAULT_VIDEOS } from '../context/DataContext.jsx';
+import { getLocalVideoBlobUrl } from '../utils/videoStorage.js';
 
 /**
  * Extracts YouTube Video ID from any standard URL format:
@@ -134,9 +135,40 @@ export function VideoPlayerPane() {
 
   const currentVideo = activeVideos[currentVideoIndex] || activeVideos[0] || null;
 
+  // Resolve IndexedDB local blob url if needed
+  const [resolvedVideoUrl, setResolvedVideoUrl] = useState(currentVideo?.url || '');
+
+  useEffect(() => {
+    let isMounted = true;
+    if (!currentVideo?.url) {
+      setResolvedVideoUrl('');
+      return;
+    }
+
+    if (currentVideo.url.startsWith('indexeddb://')) {
+      const videoId = currentVideo.id || currentVideo.url.replace('indexeddb://', '');
+      getLocalVideoBlobUrl(videoId).then((blobUrl) => {
+        if (isMounted) {
+          if (blobUrl) {
+            setResolvedVideoUrl(blobUrl);
+          } else {
+            setResolvedVideoUrl(currentVideo.localBlobUrl || '');
+          }
+        }
+      });
+    } else {
+      setResolvedVideoUrl(currentVideo.url);
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentVideo?.id, currentVideo?.url, currentVideo?.localBlobUrl]);
+
   // Determine media type
-  const ytVideoId = currentVideo ? extractYouTubeId(currentVideo.url) : null;
-  const gdriveUrl = currentVideo && !ytVideoId ? extractGoogleDrivePreview(currentVideo.url) : null;
+  const activePlayUrl = resolvedVideoUrl || currentVideo?.url || '';
+  const ytVideoId = currentVideo ? extractYouTubeId(activePlayUrl) : null;
+  const gdriveUrl = currentVideo && !ytVideoId ? extractGoogleDrivePreview(activePlayUrl) : null;
   
   // Build YouTube Embed URL with autoplay, mute, enablejsapi
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
@@ -615,8 +647,8 @@ export function VideoPlayerPane() {
             ) : (
               <video
                 ref={videoRef}
-                key={`html5-${currentVideo.id || currentVideo.url || currentVideoIndex}`}
-                src={currentVideo.url}
+                key={`html5-${currentVideo.id || currentVideoIndex}-${resolvedVideoUrl || currentVideo.url}`}
+                src={resolvedVideoUrl || currentVideo.url}
                 poster={currentVideo.thumbnail}
                 autoPlay
                 muted={isMuted}

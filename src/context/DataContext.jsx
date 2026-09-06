@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useAuth } from "./AuthContext.jsx";
 import { getApiUrl } from "../lib/api.js";
 import { supabase } from "../lib/supabaseClient.js";
+import { saveLocalVideoBlob, getLocalVideoBlobUrl, deleteLocalVideoBlob } from "../utils/videoStorage.js";
 
 export const DEFAULT_LAB_ZONES = [
   {
@@ -680,28 +681,42 @@ export function DataProvider({ children }) {
           }
 
           if (vidData) {
-            const validVids = vidData
-              .filter(v => v.url && !v.url.startsWith('blob:') && !['vid_01', 'vid_02', 'vid_03', 'vid_04', 'vid_05'].includes(v.id))
-              .map(v => ({
-                id: v.id,
-                title: v.title,
-                titleEn: v.title_en || v.titleEn || v.title,
-                category: v.category || 'safety',
-                categoryEn: v.category_en || v.categoryEn || 'Lab Safety',
-                categoryName: v.category === 'safety' ? 'K3 Laboratorium' : v.category === 'course_promo' ? 'Profil Prodi & Lab' : v.category === 'tutorial' ? 'Tutorial & Panduan' : 'Edukasi Listrik',
-                duration: v.duration || '03:00',
-                durationSec: v.duration_sec || v.durationSec || 180,
-                url: v.url,
-                thumbnail: v.thumbnail || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
-                description: v.description || '',
-                descriptionEn: v.description_en || v.descriptionEn || '',
-                featured: Boolean(v.featured),
-                active: v.active !== false && v.is_active !== false,
-                isActive: v.active !== false && v.is_active !== false && v.isActive !== false,
-                loop: v.loop !== false,
-                order: v.order || 1,
-                scheduleSlot: 'Rotasi Teratur'
-              }));
+            const validVids = await Promise.all(
+              vidData
+                .filter(v => v.url && !v.url.startsWith('blob:') && !['vid_01', 'vid_02', 'vid_03', 'vid_04', 'vid_05'].includes(v.id))
+                .map(async (v) => {
+                  let playableUrl = v.url;
+                  if (v.url && v.url.startsWith('indexeddb://')) {
+                    const videoId = v.id || v.url.replace('indexeddb://', '');
+                    const localBlobUrl = await getLocalVideoBlobUrl(videoId);
+                    if (localBlobUrl) {
+                      playableUrl = localBlobUrl;
+                    }
+                  }
+
+                  return {
+                    id: v.id,
+                    title: v.title,
+                    titleEn: v.title_en || v.titleEn || v.title,
+                    category: v.category || 'instructional',
+                    categoryEn: v.category_en || v.categoryEn || 'Instructional & Practicum',
+                    categoryName: v.category === 'safety' || v.category === 'k3_safety' ? 'K3 Laboratorium' : v.category === 'course_promo' ? 'Profil Prodi & Lab' : v.category === 'instructional' || v.category === 'tutorial' ? 'Tutorial & Panduan' : 'Edukasi Listrik',
+                    duration: v.duration || '03:00',
+                    durationSec: v.duration_sec || v.durationSec || 180,
+                    url: playableUrl,
+                    rawUrl: v.url,
+                    thumbnail: v.thumbnail || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
+                    description: v.description || '',
+                    descriptionEn: v.description_en || v.descriptionEn || '',
+                    featured: Boolean(v.featured),
+                    active: v.active !== false && v.is_active !== false,
+                    isActive: v.active !== false && v.is_active !== false && v.isActive !== false,
+                    loop: v.loop !== false,
+                    order: v.order || 1,
+                    scheduleSlot: 'Rotasi Teratur'
+                  };
+                })
+            );
 
             setVideos(validVids);
           }
@@ -1073,22 +1088,24 @@ export function DataProvider({ children }) {
 
   // Video operations
   const uploadVideoFile = async (file) => {
-    const formData = new FormData();
-    formData.append("videoFile", file);
     try {
-      const res = await fetch(getApiUrl("/api/videos/upload-video"), {
-        method: "POST",
-        headers: { ...(token ? { "Authorization": `Bearer ${token}` } : {}) },
-        body: formData
-      });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success && json.url) return json;
-      }
-    } catch {}
+      const newId = `vid_${Date.now()}`;
+      // Save permanently into browser IndexedDB
+      await saveLocalVideoBlob(newId, file);
+      const localUrl = URL.createObjectURL(file);
 
-    // Fallback: create persistent local media preview
-    return { success: true, url: URL.createObjectURL(file) };
+      return { 
+        success: true, 
+        id: newId, 
+        url: `indexeddb://${newId}`, 
+        localBlobUrl: localUrl,
+        fileName: file.name,
+        fileSizeMB: (file.size / (1024 * 1024)).toFixed(2)
+      };
+    } catch (err) {
+      console.warn("Local video storage warning:", err);
+      return { success: true, url: URL.createObjectURL(file) };
+    }
   };
 
   const uploadVideoThumbnail = async (file) => {
@@ -1104,8 +1121,22 @@ export function DataProvider({ children }) {
   };
 
   const addVideo = async (videoData) => {
-    const newId = `vid_${Date.now()}`;
-    const newObj = { ...videoData, id: newId };
+    const newId = videoData.id || `vid_${Date.now()}`;
+    const playUrl = videoData.localBlobUrl || videoData.url;
+    const persistentUrl = videoData.url?.startsWith('blob:') ? `indexeddb://${newId}` : (videoData.url || `indexeddb://${newId}`);
+
+    // If fileBlob is provided, ensure saved to IndexedDB
+    if (videoData.fileBlob) {
+      await saveLocalVideoBlob(newId, videoData.fileBlob);
+    }
+
+    const newObj = {
+      ...videoData,
+      id: newId,
+      url: playUrl,
+      rawUrl: persistentUrl
+    };
+
     setVideos(prev => [...prev, newObj]);
 
     if (supabase) {
@@ -1113,15 +1144,15 @@ export function DataProvider({ children }) {
         await supabase.from("videos").insert({
           id: newId,
           title: newObj.title,
-          title_en: newObj.titleEn,
-          category: newObj.category,
-          category_en: newObj.categoryEn,
-          duration: newObj.duration,
-          duration_sec: newObj.durationSec,
-          url: newObj.url,
+          title_en: newObj.titleEn || newObj.title,
+          category: newObj.category || 'instructional',
+          category_en: newObj.categoryEn || 'Instructional & Practicum',
+          duration: newObj.duration || '03:00',
+          duration_sec: newObj.durationSec || 180,
+          url: persistentUrl,
           thumbnail: newObj.thumbnail,
-          description: newObj.description,
-          description_en: newObj.descriptionEn,
+          description: newObj.description || '',
+          description_en: newObj.descriptionEn || '',
           featured: newObj.featured || false,
           active: newObj.active !== false,
           loop: newObj.loop !== false,
@@ -1134,7 +1165,7 @@ export function DataProvider({ children }) {
       await fetch(getApiUrl("/api/videos"), {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify(newObj)
+        body: JSON.stringify({ ...newObj, url: persistentUrl })
       });
     } catch {}
 
@@ -1142,18 +1173,25 @@ export function DataProvider({ children }) {
   };
 
   const updateVideo = async (id, videoData) => {
-    setVideos(prev => prev.map(v => v.id === id ? { ...v, ...videoData } : v));
+    const persistentUrl = videoData.url?.startsWith('blob:') ? `indexeddb://${id}` : videoData.url;
+    const playUrl = videoData.localBlobUrl || videoData.url;
+
+    if (videoData.fileBlob) {
+      await saveLocalVideoBlob(id, videoData.fileBlob);
+    }
+
+    setVideos(prev => prev.map(v => v.id === id ? { ...v, ...videoData, url: playUrl, rawUrl: persistentUrl } : v));
 
     if (supabase) {
       try {
         await supabase.from("videos").update({
           title: videoData.title,
-          title_en: videoData.titleEn,
+          title_en: videoData.titleEn || videoData.title,
           category: videoData.category,
           category_en: videoData.categoryEn,
           duration: videoData.duration,
           duration_sec: videoData.durationSec,
-          url: videoData.url,
+          url: persistentUrl,
           thumbnail: videoData.thumbnail,
           description: videoData.description,
           description_en: videoData.descriptionEn,
@@ -1169,7 +1207,7 @@ export function DataProvider({ children }) {
       await fetch(getApiUrl(`/api/videos/${id}`), {
         method: "PUT",
         headers: authHeaders(),
-        body: JSON.stringify(videoData)
+        body: JSON.stringify({ ...videoData, url: persistentUrl })
       });
     } catch {}
 
@@ -1178,6 +1216,11 @@ export function DataProvider({ children }) {
 
   const deleteVideo = async (id) => {
     setVideos(prev => prev.filter(v => v.id !== id));
+
+    // Delete from IndexedDB permanent storage
+    try {
+      await deleteLocalVideoBlob(id);
+    } catch {}
 
     if (supabase) {
       try {

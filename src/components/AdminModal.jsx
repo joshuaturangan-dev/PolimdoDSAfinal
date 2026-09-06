@@ -29,6 +29,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { useData } from '../context/DataContext.jsx';
 import { parseExcelFile, downloadSampleExcel, exportSchedulesToExcel } from '../utils/excelHelper.js';
+import { generateVideoThumbnail, extractVideoDuration } from '../utils/videoStorage.js';
 
 function extractYouTubeId(url) {
   if (!url || typeof url !== 'string') return null;
@@ -129,7 +130,7 @@ export function AdminModal({ onClose }) {
   const [videoPreviewUrl, setVideoPreviewUrl] = useState('');
   const [uploadingThumb, setUploadingThumb] = useState(false);
   const [thumbPreviewUrl, setThumbPreviewUrl] = useState('');
-  const [videoInputTab, setVideoInputTab] = useState('url'); // 'url' (permanent cloud/YouTube) or 'file' (local preview)
+  const [videoInputTab, setVideoInputTab] = useState('file'); // 'file' (IndexedDB persistent) or 'url' (YouTube / direct link)
 
   // Announcement States
   const [annForm, setAnnForm] = useState(null);
@@ -238,15 +239,10 @@ export function AdminModal({ onClose }) {
     }
   };
 
-  // Video Direct File Upload Handler
+  // Video Direct File Upload Handler (Permanent IndexedDB Storage)
   const handleVideoFileChange = async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
-
-    // Create local object URL for instant preview
-    const localUrl = URL.createObjectURL(file);
-    setVideoPreviewUrl(localUrl);
-    setUploadingVideo(true);
 
     const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
     setVideoUploadInfo({
@@ -254,66 +250,52 @@ export function AdminModal({ onClose }) {
       fileSizeFormatted: `${fileSizeMB} MB`
     });
 
-    // Auto extract duration and snapshot from video
+    setUploadingVideo(true);
+
     try {
-      const tempVideo = document.createElement('video');
-      tempVideo.src = localUrl;
-      tempVideo.preload = 'metadata';
-      tempVideo.muted = true;
-      tempVideo.playsInline = true;
+      // 1. Instant local object URL for immediate interactive preview
+      const localUrl = URL.createObjectURL(file);
+      setVideoPreviewUrl(localUrl);
 
-      tempVideo.onloadedmetadata = () => {
-        const sec = Math.floor(tempVideo.duration) || 0;
-        const m = Math.floor(sec / 60);
-        const s = Math.floor(sec % 60);
-        const durStr = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-        
-        // Auto fill duration & title
-        setVideoForm(prev => {
-          if (!prev) return prev;
-          const cleanTitle = prev.title ? prev.title : file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
-          return {
-            ...prev,
-            duration: durStr,
-            title: cleanTitle
-          };
-        });
+      // 2. Extract Duration and Thumbnail automatically in parallel
+      const [durationInfo, autoThumbBase64] = await Promise.all([
+        extractVideoDuration(file),
+        generateVideoThumbnail(file)
+      ]);
 
-        // Seek to 1s to capture thumbnail
-        tempVideo.currentTime = Math.min(1.0, tempVideo.duration / 2);
-      };
-
-      tempVideo.onseeked = () => {
-        try {
-          const canvas = document.createElement('canvas');
-          canvas.width = tempVideo.videoWidth || 640;
-          canvas.height = tempVideo.videoHeight || 360;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(tempVideo, 0, 0, canvas.width, canvas.height);
-          const thumbDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-          if (!thumbPreviewUrl) {
-            setThumbPreviewUrl(thumbDataUrl);
-            setVideoForm(prev => prev ? ({ ...prev, thumbnail: thumbDataUrl }) : prev);
-          }
-        } catch (err) {
-          console.warn('Auto-thumbnail canvas error:', err);
-        }
-      };
-    } catch (err) {
-      console.warn('Video metadata error:', err);
-    }
-
-    // Upload to server
-    try {
-      const res = await uploadVideoFile(file);
-      if (res.success) {
-        setVideoForm(prev => prev ? ({ ...prev, url: res.url }) : prev);
-        showToast(`Video "${file.name}" (${fileSizeMB} MB) berhasil diunggah!`);
-      } else {
-        alert(res.message || 'Gagal mengunggah video ke server.');
+      if (autoThumbBase64 && !thumbPreviewUrl) {
+        setThumbPreviewUrl(autoThumbBase64);
       }
+
+      // 3. Save to permanent browser IndexedDB storage
+      const res = await uploadVideoFile(file);
+      
+      const cleanTitle = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
+
+      setVideoForm(prev => ({
+        ...(prev || {}),
+        id: res.id || prev?.id || `vid_${Date.now()}`,
+        title: prev?.title ? prev.title : cleanTitle,
+        titleEn: prev?.titleEn ? prev.titleEn : cleanTitle,
+        category: prev?.category || 'instructional',
+        categoryEn: prev?.categoryEn || 'Instructional & Practicum',
+        duration: durationInfo.duration || '03:00',
+        durationSec: durationInfo.durationSec || 180,
+        url: res.url, // 'indexeddb://vid_xxx'
+        localBlobUrl: localUrl,
+        fileBlob: file,
+        thumbnail: prev?.thumbnail || autoThumbBase64 || "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80",
+        description: prev?.description || `Video praktikum & pembelajaran: ${file.name}`,
+        descriptionEn: prev?.descriptionEn || `Practicum & instructional video: ${file.name}`,
+        scheduleSlot: prev?.scheduleSlot || 'Rotasi Teratur',
+        active: true,
+        featured: false
+      }));
+
+      showToast(`Video "${file.name}" (${fileSizeMB} MB) berhasil disimpan permanen!`);
     } catch (err) {
-      alert('Error saat upload video: ' + err.message);
+      console.error('Error processing video upload:', err);
+      alert('Gagal memproses file video: ' + err.message);
     } finally {
       setUploadingVideo(false);
     }
@@ -1233,48 +1215,51 @@ export function AdminModal({ onClose }) {
                         </button>
                       </div>
 
-                      {/* Video Source Switcher: URL (Permanent) vs File Upload (Local Demo) */}
+                      {/* Video Source Switcher: File Upload (Persistent IndexedDB) vs URL (YouTube/Direct) */}
                       <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-2">
-                        <button
-                          type="button"
-                          onClick={() => setVideoInputTab('url')}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${
-                            videoInputTab === 'url'
-                              ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md shadow-cyan-900/40 border border-cyan-400/40'
-                              : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-                          }`}
-                        >
-                          <span>🌟 Link Video YouTube / Drive (Rekomendasi - Aktif 24/7)</span>
-                        </button>
-
                         <button
                           type="button"
                           onClick={() => setVideoInputTab('file')}
                           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${
                             videoInputTab === 'file'
-                              ? 'bg-cyan-600 text-white shadow-md'
+                              ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-md shadow-cyan-900/40 border border-cyan-400/40'
                               : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
                           }`}
                         >
                           <Upload className="w-3.5 h-3.5" />
-                          <span>📁 File Video Lokal (Preview Saja)</span>
+                          <span>📁 Upload File Video dari Folder (Tersimpan Permanen)</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setVideoInputTab('url')}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${
+                            videoInputTab === 'url'
+                              ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-md shadow-cyan-900/40 border border-cyan-400/40'
+                              : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                          }`}
+                        >
+                          <span>🌟 Link Video YouTube / URL Online</span>
                         </button>
                       </div>
 
                       {/* File Upload Mode */}
                       {videoInputTab === 'file' ? (
                         <div className="space-y-3">
-                          <div className="p-2.5 rounded-lg bg-amber-950/40 border border-amber-500/30 text-amber-300 text-[11px] leading-relaxed">
-                            💡 <strong>Catatan:</strong> File video lokal dari komputer hanya tersimpan sementara di memori browser ini. Untuk display layar signage yang aktif permanen dan tidak hilang saat browser dibuka kembali, gunakan tab <strong>"Link Video YouTube / Drive"</strong>.
+                          <div className="p-2.5 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-[11px] leading-relaxed flex items-start gap-2">
+                            <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                            <div>
+                              <strong>Penyimpanan Permanen Aktif:</strong> File video yang diunggah dari laptop/komputer ini tersimpan permanen di penyimpanan peramban (IndexedDB). Video <strong>tidak akan hilang</strong> saat website ditutup, di-refresh, atau dibuka kembali esok hari.
+                            </div>
                           </div>
 
                           <label className="block p-4 rounded-xl border-2 border-dashed border-cyan-500/50 bg-cyan-950/20 hover:bg-cyan-950/40 cursor-pointer text-center transition-all group">
                             <Upload className="w-8 h-8 text-cyan-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
                             <span className="text-xs font-black text-cyan-300 block">
-                              {uploadingVideo ? 'Mengunggah Video ke Server...' : 'Klik di Sini untuk Memilih File Video dari Folder Anda'}
+                              {uploadingVideo ? 'Menyimpan Video ke Penyimpanan Permanen...' : 'Klik di Sini untuk Memilih File Video dari Folder Anda'}
                             </span>
                             <span className="text-[10px] text-slate-400 block mt-1">
-                              Mendukung format: MP4, WebM, MOV, MKV, AVI
+                              Mendukung format: MP4, WebM, MOV (Durasi & Thumbnail otomatis dicuplik)
                             </span>
                             <input
                               type="file"

@@ -1,0 +1,244 @@
+/**
+ * IndexedDB Persistent Video Storage for POLIMDO Lab Signage
+ * Allows local video files (MP4/WebM/MOV) to be stored permanently in browser storage (up to several GBs)
+ * so they NEVER disappear when the browser is closed, refreshed, or restarted.
+ */
+
+const DB_NAME = 'PolimdoSignageVideoDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'video_blobs';
+
+let dbPromise = null;
+
+function getDB() {
+  if (dbPromise) return dbPromise;
+
+  dbPromise = new Promise((resolve, reject) => {
+    if (typeof window === 'undefined' || !window.indexedDB) {
+      return reject(new Error('IndexedDB not supported in this environment'));
+    }
+
+    const request = window.indexedDB.open(DB_NAME, DB_VERSION);
+
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+      }
+    };
+
+    request.onsuccess = (event) => {
+      resolve(event.target.result);
+    };
+
+    request.onerror = (event) => {
+      reject(event.target.error);
+    };
+  });
+
+  return dbPromise;
+}
+
+/**
+ * Saves a local Video File or Blob into IndexedDB permanently
+ * @param {string} id - Unique video ID
+ * @param {Blob|File} blob - Video file binary
+ * @returns {Promise<boolean>}
+ */
+export async function saveLocalVideoBlob(id, blob) {
+  try {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      const record = {
+        id,
+        blob,
+        updatedAt: Date.now(),
+        type: blob.type || 'video/mp4'
+      };
+      const req = store.put(record);
+      req.onsuccess = () => resolve(true);
+      req.onerror = (e) => reject(e.target.error);
+    });
+  } catch (err) {
+    console.error('Failed to save video to IndexedDB:', err);
+    return false;
+  }
+}
+
+/**
+ * Retrieves a local Video Blob from IndexedDB and creates a working ObjectURL
+ * @param {string} id - Unique video ID
+ * @returns {Promise<string|null>} - Active ObjectURL or null
+ */
+export async function getLocalVideoBlobUrl(id) {
+  try {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.get(id);
+      req.onsuccess = () => {
+        const record = req.result;
+        if (record && record.blob) {
+          const blobUrl = URL.createObjectURL(record.blob);
+          resolve(blobUrl);
+        } else {
+          resolve(null);
+        }
+      };
+      req.onerror = (e) => reject(e.target.error);
+    });
+  } catch (err) {
+    console.warn('Failed to retrieve video from IndexedDB:', err);
+    return null;
+  }
+}
+
+/**
+ * Deletes a local Video Blob from IndexedDB
+ * @param {string} id
+ */
+export async function deleteLocalVideoBlob(id) {
+  try {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.delete(id);
+      req.onsuccess = () => resolve(true);
+      req.onerror = (e) => reject(e.target.error);
+    });
+  } catch (err) {
+    console.warn('Failed to delete video from IndexedDB:', err);
+    return false;
+  }
+}
+
+/**
+ * Automatically captures a thumbnail image (first frame) from a local Video File
+ * @param {File|Blob} file
+ * @returns {Promise<string>} - Base64 Data URL of the thumbnail
+ */
+export function generateVideoThumbnail(file) {
+  return new Promise((resolve) => {
+    let resolved = false;
+    let tempUrl = '';
+    const finish = (result) => {
+      if (resolved) return;
+      resolved = true;
+      if (tempUrl) {
+        try { URL.revokeObjectURL(tempUrl); } catch {}
+      }
+      resolve(result || '');
+    };
+
+    // Timeout safety 4s
+    const timer = setTimeout(() => finish(''), 4000);
+
+    try {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.muted = true;
+      video.playsInline = true;
+
+      tempUrl = URL.createObjectURL(file);
+      video.src = tempUrl;
+
+      const captureFrame = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const maxW = 640;
+          let w = video.videoWidth || 640;
+          let h = video.videoHeight || 360;
+
+          if (w > maxW) {
+            h = Math.round((h * maxW) / w);
+            w = maxW;
+          }
+
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(video, 0, 0, w, h);
+          const thumbBase64 = canvas.toDataURL('image/jpeg', 0.85);
+          clearTimeout(timer);
+          finish(thumbBase64);
+        } catch {
+          clearTimeout(timer);
+          finish('');
+        }
+      };
+
+      video.onloadedmetadata = () => {
+        video.currentTime = Math.min(1, Math.max(0.1, (video.duration || 1) * 0.1));
+      };
+
+      video.onseeked = () => {
+        captureFrame();
+      };
+
+      video.onerror = () => {
+        clearTimeout(timer);
+        finish('');
+      };
+
+      video.load();
+    } catch {
+      clearTimeout(timer);
+      finish('');
+    }
+  });
+}
+
+/**
+ * Extracts exact duration string (MM:SS) and seconds from a Video File
+ * @param {File|Blob} file
+ * @returns {Promise<{duration: string, durationSec: number}>}
+ */
+export function extractVideoDuration(file) {
+  return new Promise((resolve) => {
+    let resolved = false;
+    let tempUrl = '';
+    const finish = (result) => {
+      if (resolved) return;
+      resolved = true;
+      if (tempUrl) {
+        try { URL.revokeObjectURL(tempUrl); } catch {}
+      }
+      resolve(result);
+    };
+
+    const timer = setTimeout(() => finish({ duration: '03:00', durationSec: 180 }), 3000);
+
+    try {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      tempUrl = URL.createObjectURL(file);
+      video.src = tempUrl;
+
+      video.onloadedmetadata = () => {
+        const sec = Math.round(video.duration || 0);
+        const mins = Math.floor(sec / 60);
+        const remainingSec = sec % 60;
+        const formatted = String(mins).padStart(2, '0') + ':' + String(remainingSec).padStart(2, '0');
+        clearTimeout(timer);
+        finish({
+          duration: sec > 0 ? formatted : '03:00',
+          durationSec: sec > 0 ? sec : 180
+        });
+      };
+
+      video.onerror = () => {
+        clearTimeout(timer);
+        finish({ duration: '03:00', durationSec: 180 });
+      };
+
+      video.load();
+    } catch {
+      clearTimeout(timer);
+      finish({ duration: '03:00', durationSec: 180 });
+    }
+  });
+}
