@@ -60,7 +60,7 @@ export function extractGoogleDrivePreview(url) {
   return null;
 }
 
-export function VideoPlayerPane() {
+export function VideoPlayerPane({ layoutMode = 'split', onToggleVideoFull }) {
   const { lang, t } = useLanguage();
   const { videos } = useData();
 

@@ -7,7 +7,9 @@ import {
   Package, 
   RotateCw, 
   Sparkles,
-  Layers
+  Layers,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { ScheduleView } from './ScheduleView.jsx';
@@ -16,7 +18,7 @@ import { FacultyView } from './FacultyView.jsx';
 import { FloorPlanView } from './FloorPlanView.jsx';
 import { InventoryBookingView } from './InventoryBookingView.jsx';
 
-export function InfoHubPane({ onOpenMobileView }) {
+export function InfoHubPane({ onOpenMobileView, layoutMode = 'split', onToggleScheduleFull }) {
   const { lang, t } = useLanguage();
 
   const [activeTab, setActiveTab] = useState('schedules');
@@ -88,19 +90,46 @@ export function InfoHubPane({ onOpenMobileView }) {
           })}
         </div>
 
-        {/* Auto Rotate Kiosk Mode Toggle */}
-        <button
-          onClick={() => setAutoRotate(!autoRotate)}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all border shrink-0 ${
-            autoRotate
-              ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse'
-              : 'bg-slate-800/80 text-slate-400 border-slate-700/60 hover:text-slate-200'
-          }`}
-          title="Auto-rotate tabs every 15s"
-        >
-          <RotateCw className={`w-3.5 h-3.5 ${autoRotate ? 'animate-spin' : ''}`} />
-          <span className="hidden xl:inline">{t('autoRotateTabs')}</span>
-        </button>
+        {/* Right Actions: Fullscreen Schedule Toggle & Auto Rotate */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {onToggleScheduleFull && (
+            <button
+              onClick={onToggleScheduleFull}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all border shrink-0 ${
+                layoutMode === 'schedule_full'
+                  ? 'bg-cyan-500 text-slate-950 border-cyan-400 shadow-md shadow-cyan-950 font-black'
+                  : 'bg-slate-800/80 text-cyan-300 hover:text-white border-cyan-500/40 hover:bg-slate-700/80'
+              }`}
+              title={layoutMode === 'schedule_full' ? t('restoreSplitView') : t('expandSchedule')}
+            >
+              {layoutMode === 'schedule_full' ? (
+                <>
+                  <Minimize2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">{t('restoreSplitView')}</span>
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="w-3.5 h-3.5 text-cyan-400" />
+                  <span className="hidden sm:inline">{t('expandSchedule')}</span>
+                </>
+              )}
+            </button>
+          )}
+
+          {/* Auto Rotate Kiosk Mode Toggle */}
+          <button
+            onClick={() => setAutoRotate(!autoRotate)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all border shrink-0 ${
+              autoRotate
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse'
+                : 'bg-slate-800/80 text-slate-400 border-slate-700/60 hover:text-slate-200'
+            }`}
+            title="Auto-rotate tabs every 15s"
+          >
+            <RotateCw className={`w-3.5 h-3.5 ${autoRotate ? 'animate-spin' : ''}`} />
+            <span className="hidden xl:inline">{t('autoRotateTabs')}</span>
+          </button>
+        </div>
 
       </div>
 
@@ -115,8 +144,13 @@ export function InfoHubPane({ onOpenMobileView }) {
       )}
 
       {/* Tab Content Display Area */}
-      <div className="flex-1 p-3.5 overflow-hidden">
-        {activeTab === 'schedules' && <ScheduleView />}
+      <div className="flex-1 p-3 md:p-3.5 overflow-hidden">
+        {activeTab === 'schedules' && (
+          <ScheduleView 
+            isExpanded={layoutMode === 'schedule_full'} 
+            onToggleExpand={onToggleScheduleFull}
+          />
+        )}
         {activeTab === 'announcements' && <AnnouncementsView />}
         {activeTab === 'faculty' && <FacultyView />}
         {activeTab === 'floorplan' && <FloorPlanView onOpenMobileView={onOpenMobileView} />}

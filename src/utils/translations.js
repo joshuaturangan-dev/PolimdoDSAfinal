@@ -86,6 +86,13 @@ export const translations = {
     time: "Waktu",
     noClassToday: "Tidak ada jadwal praktikum pada waktu ini.",
     voiceReadSchedule: "Bacakan Jadwal Hari Ini",
+    expandSchedule: "Perbesar Jadwal (Layar Penuh)",
+    restoreSplitView: "Tampilan Normal (Split)",
+    compactHighlights: "Ringkas Highlight",
+    showHighlights: "Tampilkan Highlight",
+    fontSizeOption: "Ukuran Teks",
+    fontNormal: "Standar",
+    fontLarge: "Besar (TV Lab)",
 
     // Faculty
     facultyDirectoryTitle: "Daftar Dosen & Tenaga Kependidikan D4 Teknik Listrik",
@@ -296,6 +303,13 @@ export const translations = {
     time: "Time",
     noClassToday: "No scheduled laboratory classes at this time.",
     voiceReadSchedule: "Read Today's Schedule Aloud",
+    expandSchedule: "Expand Schedule (Full Width)",
+    restoreSplitView: "Normal Split View",
+    compactHighlights: "Compact Highlights",
+    showHighlights: "Show Highlights",
+    fontSizeOption: "Text Size",
+    fontNormal: "Standard",
+    fontLarge: "Large (Lab TV)",
 
     // Faculty
     facultyDirectoryTitle: "D4 Electrical Engineering Faculty & Staff Directory",
