@@ -91,7 +91,7 @@ export function FacultyView() {
       {/* Faculty Grid Cards */}
       <div 
         ref={containerRef} 
-        className="flex-1 overflow-y-auto pr-1 grid grid-cols-1 md:grid-cols-2 gap-3 scroll-smooth"
+        className="flex-1 overflow-y-auto pr-1 grid grid-cols-1 md:grid-cols-2 gap-3"
       >
         {filteredFaculty.map((fac) => (
           <div

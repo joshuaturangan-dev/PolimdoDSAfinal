@@ -168,7 +168,7 @@ export function AnnouncementsView() {
       {/* Announcements List */}
       <div 
         ref={containerRef} 
-        className="flex-1 overflow-y-auto pr-1 space-y-3 scroll-smooth"
+        className="flex-1 overflow-y-auto pr-1 space-y-3"
       >
         {activeList.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-center p-6 bg-slate-950/40 rounded-xl border border-dashed border-slate-800">
