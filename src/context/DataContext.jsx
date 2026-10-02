@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useAuth } from "./AuthContext.jsx";
 import { getApiUrl } from "../lib/api.js";
 import { supabase } from "../lib/supabaseClient.js";
-import { saveLocalVideoBlob, getLocalVideoBlobUrl, deleteLocalVideoBlob, getAllLocalVideoRecords, parseDurationSeconds } from "../utils/videoStorage.js";
+import { saveLocalVideoBlob, getLocalVideoBlobUrl, deleteLocalVideoBlob, getAllLocalVideoRecords, parseDurationSeconds, extractYouTubeId } from "../utils/videoStorage.js";
 
 export const DEFAULT_LAB_ZONES = [
   {
@@ -593,6 +593,20 @@ export async function fileToBase64(file, maxWidth = 600, quality = 0.85) {
   });
 }
 
+const getInitialVideos = () => {
+  if (typeof window === 'undefined') return DEFAULT_VIDEOS;
+  try {
+    const raw = localStorage.getItem('polimdo_cached_videos');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.filter(v => v.id && !['vid_01', 'vid_02', 'vid_03', 'vid_04', 'vid_05'].includes(v.id));
+      }
+    }
+  } catch {}
+  return DEFAULT_VIDEOS;
+};
+
 const DataContext = createContext();
 
 export function DataProvider({ children }) {
@@ -600,7 +614,7 @@ export function DataProvider({ children }) {
 
   const [schedules, setSchedules] = useState(DEFAULT_SCHEDULES);
   const [faculty, setFaculty] = useState(DEFAULT_FACULTY);
-  const [videos, setVideos] = useState(DEFAULT_VIDEOS);
+  const [videos, setVideos] = useState(getInitialVideos);
   const [announcements, setAnnouncements] = useState(DEFAULT_ANNOUNCEMENTS);
   const [inventory, setInventory] = useState(DEFAULT_INVENTORY);
   const [bookings, setBookings] = useState([]);
@@ -681,78 +695,91 @@ export function DataProvider({ children }) {
           }
 
           if (vidData) {
-            const validVids = await Promise.all(
-              vidData
-                .filter(v => v.url && !v.url.startsWith('blob:') && !['vid_01', 'vid_02', 'vid_03', 'vid_04', 'vid_05'].includes(v.id))
-                .map(async (v) => {
-                  let playableUrl = v.url;
-                  if (v.url && v.url.startsWith('indexeddb://')) {
-                    const videoId = v.id || v.url.replace('indexeddb://', '');
-                    const localBlobUrl = await getLocalVideoBlobUrl(videoId);
-                    if (localBlobUrl) {
-                      playableUrl = localBlobUrl;
-                    }
-                  }
+            const mergedMap = new Map();
 
-                  return {
-                    id: v.id,
-                    title: v.title,
-                    titleEn: v.title_en || v.titleEn || v.title,
-                    category: v.category || 'instructional',
-                    categoryEn: v.category_en || v.categoryEn || 'Instructional & Practicum',
-                    categoryName: v.category === 'safety' || v.category === 'k3_safety' ? 'K3 Laboratorium' : v.category === 'course_promo' ? 'Profil Prodi & Lab' : v.category === 'instructional' || v.category === 'tutorial' ? 'Tutorial & Panduan' : 'Edukasi Listrik',
-                    duration: v.duration || '03:00',
-                    durationSec: parseDurationSeconds(v.duration, v.duration_sec || v.durationSec || 180),
-                    url: playableUrl,
-                    rawUrl: v.url,
-                    thumbnail: v.thumbnail || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
-                    description: v.description || '',
-                    descriptionEn: v.description_en || v.descriptionEn || '',
-                    featured: Boolean(v.featured),
-                    active: v.active !== false && v.is_active !== false,
-                    isActive: v.active !== false && v.is_active !== false && v.isActive !== false,
-                    loop: v.loop !== false,
-                    order: v.order || 1,
-                    scheduleSlot: 'Rotasi Teratur'
-                  };
-                })
-            );
+            // 1. Populate Supabase Cloud videos
+            vidData
+              .filter(v => v.url && !v.url.startsWith('blob:') && !['vid_01', 'vid_02', 'vid_03', 'vid_04', 'vid_05'].includes(v.id))
+              .forEach((v) => {
+                const ytId = extractYouTubeId(v.url);
+                const autoThumb = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : '';
+                mergedMap.set(v.id, {
+                  id: v.id,
+                  title: v.title || 'Video Signage',
+                  titleEn: v.title_en || v.titleEn || v.title || 'Signage Video',
+                  category: v.category || 'instructional',
+                  categoryEn: v.category_en || v.categoryEn || 'Instructional & Practicum',
+                  categoryName: v.category === 'safety' || v.category === 'k3_safety' ? 'K3 Laboratorium' : v.category === 'course_promo' ? 'Profil Prodi & Lab' : 'Tutorial & Panduan',
+                  duration: v.duration || '03:00',
+                  durationSec: parseDurationSeconds(v.duration, v.duration_sec || v.durationSec || 180),
+                  url: v.url,
+                  rawUrl: v.url,
+                  thumbnail: v.thumbnail || autoThumb || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
+                  description: v.description || '',
+                  descriptionEn: v.description_en || v.descriptionEn || '',
+                  featured: Boolean(v.featured),
+                  active: v.active !== false && v.is_active !== false,
+                  isActive: v.active !== false && v.is_active !== false,
+                  loop: v.loop !== false,
+                  order: v.order || 1,
+                  scheduleSlot: v.schedule_slot || v.scheduleSlot || 'Rotasi Teratur'
+                });
+              });
 
-            // Also check IndexedDB for locally stored videos that might not be synced to Supabase
+            // 2. Also check IndexedDB for locally stored videos (YouTube links and file blobs)
             try {
               const localDbRecords = await getAllLocalVideoRecords();
-              const existingIds = new Set(validVids.map(v => v.id));
               for (const rec of localDbRecords) {
-                if (rec.id && !existingIds.has(rec.id) && !['vid_01', 'vid_02', 'vid_03', 'vid_04', 'vid_05'].includes(rec.id)) {
-                  const blobUrl = URL.createObjectURL(rec.blob);
-                  validVids.push({
-                    id: rec.id,
-                    title: rec.title || 'Video Praktikum Lokal',
-                    titleEn: rec.titleEn || rec.title || 'Local Practicum Video',
-                    category: rec.category || 'instructional',
-                    categoryEn: rec.categoryEn || 'Instructional & Practicum',
-                    categoryName: 'Tutorial & Panduan',
-                    duration: rec.duration || '03:00',
-                    durationSec: parseDurationSeconds(rec.duration, rec.durationSec || 180),
-                    url: blobUrl,
-                    rawUrl: `indexeddb://${rec.id}`,
-                    thumbnail: rec.thumbnail || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
-                    description: rec.description || '',
-                    descriptionEn: rec.descriptionEn || '',
-                    featured: false,
-                    active: true,
-                    isActive: true,
-                    loop: true,
-                    order: 1,
-                    scheduleSlot: 'Rotasi Teratur'
-                  });
+                if (rec && rec.id && !['vid_01', 'vid_02', 'vid_03', 'vid_04', 'vid_05'].includes(rec.id)) {
+                  let playableUrl = rec.url || rec.rawUrl || '';
+                  if (rec.blob && rec.blob instanceof Blob) {
+                    try {
+                      playableUrl = URL.createObjectURL(rec.blob);
+                    } catch {}
+                  } else if (playableUrl.startsWith('indexeddb://')) {
+                    const localBlobUrl = await getLocalVideoBlobUrl(rec.id);
+                    if (localBlobUrl) playableUrl = localBlobUrl;
+                  }
+
+                  if (playableUrl) {
+                    const existing = mergedMap.get(rec.id) || {};
+                    const ytId = extractYouTubeId(playableUrl);
+                    const autoThumb = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : '';
+
+                    mergedMap.set(rec.id, {
+                      ...existing,
+                      id: rec.id,
+                      title: rec.title || existing.title || 'Video Signage',
+                      titleEn: rec.titleEn || rec.title || existing.titleEn || 'Signage Video',
+                      category: rec.category || existing.category || 'instructional',
+                      categoryEn: rec.categoryEn || existing.categoryEn || 'Instructional & Practicum',
+                      categoryName: rec.category === 'safety' || rec.category === 'k3_safety' ? 'K3 Laboratorium' : rec.category === 'course_promo' ? 'Profil Prodi & Lab' : 'Tutorial & Panduan',
+                      duration: rec.duration || existing.duration || '03:00',
+                      durationSec: parseDurationSeconds(rec.duration || existing.duration, rec.durationSec || existing.durationSec || 180),
+                      url: playableUrl,
+                      rawUrl: rec.rawUrl || rec.url || existing.rawUrl || playableUrl,
+                      thumbnail: rec.thumbnail || existing.thumbnail || autoThumb || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
+                      description: rec.description || existing.description || '',
+                      descriptionEn: rec.descriptionEn || existing.descriptionEn || '',
+                      featured: Boolean(rec.featured ?? existing.featured),
+                      active: rec.active !== false && existing.active !== false,
+                      isActive: rec.isActive !== false && existing.isActive !== false,
+                      loop: rec.loop !== false && existing.loop !== false,
+                      order: rec.order || existing.order || 1,
+                      scheduleSlot: rec.scheduleSlot || existing.scheduleSlot || 'Rotasi Teratur'
+                    });
+                  }
                 }
               }
             } catch (err) {
               console.warn('IndexedDB fallback fetch notice:', err);
             }
 
+            const validVids = Array.from(mergedMap.values());
             setVideos(validVids);
+            try {
+              localStorage.setItem('polimdo_cached_videos', JSON.stringify(validVids.map(v => ({ ...v, url: v.rawUrl || v.url }))));
+            } catch {}
           }
 
           if (annData && annData.length > 0) {
@@ -1195,31 +1222,50 @@ export function DataProvider({ children }) {
     const playUrl = videoData.localBlobUrl || videoData.url;
     const persistentUrl = videoData.url?.startsWith('blob:') ? `indexeddb://${newId}` : (videoData.url || `indexeddb://${newId}`);
     const finalDurationSec = parseDurationSeconds(videoData.duration, videoData.durationSec || 180);
+    const ytId = extractYouTubeId(persistentUrl || playUrl);
+    const autoThumb = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : '';
 
     const newObj = {
       ...videoData,
       id: newId,
+      title: videoData.title || 'Video Signage',
+      titleEn: videoData.titleEn || videoData.title || 'Signage Video',
+      category: videoData.category || 'instructional',
+      categoryEn: videoData.categoryEn || 'Instructional & Practicum',
+      categoryName: videoData.category === 'safety' || videoData.category === 'k3_safety' ? 'K3 Laboratorium' : videoData.category === 'course_promo' ? 'Profil Prodi & Lab' : 'Tutorial & Panduan',
       duration: videoData.duration || '03:00',
       durationSec: finalDurationSec,
+      thumbnail: videoData.thumbnail || autoThumb || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
       url: playUrl,
-      rawUrl: persistentUrl
+      rawUrl: persistentUrl,
+      active: videoData.active !== false,
+      isActive: videoData.isActive !== false,
+      loop: videoData.loop !== false,
+      order: videoData.order || 1,
+      scheduleSlot: videoData.scheduleSlot || 'Rotasi Teratur'
     };
 
-    // Save/update metadata and blob in IndexedDB
+    // 1. Immediately update React state and LocalStorage cache
+    setVideos(prev => {
+      const filtered = prev.filter(v => v.id !== newId);
+      const nextList = [...filtered, newObj];
+      try {
+        localStorage.setItem('polimdo_cached_videos', JSON.stringify(nextList.map(v => ({ ...v, url: v.rawUrl || v.url }))));
+      } catch {}
+      return nextList;
+    });
+
+    // 2. Save to IndexedDB permanent storage
     try {
       await saveLocalVideoBlob(newId, videoData.fileBlob || null, newObj);
     } catch (e) {
       console.warn("IndexedDB save warning:", e);
     }
 
-    setVideos(prev => {
-      const filtered = prev.filter(v => v.id !== newId);
-      return [...filtered, newObj];
-    });
-
+    // 3. Upsert to Supabase Cloud
     if (supabase) {
       try {
-        await supabase.from("videos").upsert({
+        const { error } = await supabase.from("videos").upsert({
           id: newId,
           title: newObj.title,
           title_en: newObj.titleEn || newObj.title,
@@ -1236,6 +1282,9 @@ export function DataProvider({ children }) {
           loop: newObj.loop !== false,
           order: newObj.order || 1
         });
+        if (error) {
+          console.warn("Supabase video insert notice:", error);
+        }
       } catch (e) { console.warn("Supabase video insert error:", e); }
     }
 
@@ -1254,49 +1303,71 @@ export function DataProvider({ children }) {
     const persistentUrl = videoData.url?.startsWith('blob:') ? `indexeddb://${id}` : videoData.url;
     const playUrl = videoData.localBlobUrl || videoData.url;
     const finalDurationSec = parseDurationSeconds(videoData.duration, videoData.durationSec || 180);
+    const ytId = extractYouTubeId(persistentUrl || playUrl);
+    const autoThumb = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : '';
 
     const updatedObj = {
       ...videoData,
       id,
+      title: videoData.title || 'Video Signage',
+      titleEn: videoData.titleEn || videoData.title || 'Signage Video',
+      category: videoData.category || 'instructional',
+      categoryEn: videoData.categoryEn || 'Instructional & Practicum',
+      categoryName: videoData.category === 'safety' || videoData.category === 'k3_safety' ? 'K3 Laboratorium' : videoData.category === 'course_promo' ? 'Profil Prodi & Lab' : 'Tutorial & Panduan',
       duration: videoData.duration || '03:00',
       durationSec: finalDurationSec,
+      thumbnail: videoData.thumbnail || autoThumb || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
       url: playUrl,
-      rawUrl: persistentUrl
+      rawUrl: persistentUrl,
+      active: videoData.active !== false,
+      isActive: videoData.isActive !== false,
+      loop: videoData.loop !== false,
+      order: videoData.order || 1,
+      scheduleSlot: videoData.scheduleSlot || 'Rotasi Teratur'
     };
 
+    // 1. Immediately update React state & LocalStorage cache
+    setVideos(prev => {
+      const exists = prev.some(v => v.id === id);
+      const nextList = !exists
+        ? [...prev, updatedObj]
+        : prev.map(v => v.id === id ? updatedObj : v);
+      try {
+        localStorage.setItem('polimdo_cached_videos', JSON.stringify(nextList.map(v => ({ ...v, url: v.rawUrl || v.url }))));
+      } catch {}
+      return nextList;
+    });
+
+    // 2. Save to IndexedDB
     try {
       await saveLocalVideoBlob(id, videoData.fileBlob || null, updatedObj);
     } catch (e) {
       console.warn("IndexedDB update warning:", e);
     }
 
-    setVideos(prev => {
-      const exists = prev.some(v => v.id === id);
-      if (!exists) {
-        return [...prev, updatedObj];
-      }
-      return prev.map(v => v.id === id ? updatedObj : v);
-    });
-
+    // 3. Upsert to Supabase
     if (supabase) {
       try {
-        await supabase.from("videos").upsert({
+        const { error } = await supabase.from("videos").upsert({
           id: id,
-          title: videoData.title,
-          title_en: videoData.titleEn || videoData.title,
-          category: videoData.category || 'instructional',
-          category_en: videoData.categoryEn || 'Instructional & Practicum',
-          duration: videoData.duration || '03:00',
+          title: updatedObj.title,
+          title_en: updatedObj.titleEn || updatedObj.title,
+          category: updatedObj.category || 'instructional',
+          category_en: updatedObj.categoryEn || 'Instructional & Practicum',
+          duration: updatedObj.duration || '03:00',
           duration_sec: finalDurationSec,
           url: persistentUrl,
-          thumbnail: videoData.thumbnail,
-          description: videoData.description || '',
-          description_en: videoData.descriptionEn || '',
-          featured: videoData.featured || false,
-          active: videoData.active !== false,
-          loop: videoData.loop !== false,
-          order: videoData.order || 1
+          thumbnail: updatedObj.thumbnail,
+          description: updatedObj.description || '',
+          description_en: updatedObj.descriptionEn || '',
+          featured: updatedObj.featured || false,
+          active: updatedObj.active !== false,
+          loop: updatedObj.loop !== false,
+          order: updatedObj.order || 1
         });
+        if (error) {
+          console.warn("Supabase video update notice:", error);
+        }
       } catch (e) { console.warn("Supabase video update error:", e); }
     }
 
@@ -1312,7 +1383,13 @@ export function DataProvider({ children }) {
   };
 
   const deleteVideo = async (id) => {
-    setVideos(prev => prev.filter(v => v.id !== id));
+    setVideos(prev => {
+      const nextList = prev.filter(v => v.id !== id);
+      try {
+        localStorage.setItem('polimdo_cached_videos', JSON.stringify(nextList.map(v => ({ ...v, url: v.rawUrl || v.url }))));
+      } catch {}
+      return nextList;
+    });
 
     // Delete from IndexedDB permanent storage
     try {

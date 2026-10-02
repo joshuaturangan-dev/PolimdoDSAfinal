@@ -29,25 +29,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { useData } from '../context/DataContext.jsx';
 import { parseExcelFile, downloadSampleExcel, exportSchedulesToExcel } from '../utils/excelHelper.js';
-import { generateVideoThumbnail, extractVideoDuration, parseDurationSeconds } from '../utils/videoStorage.js';
-
-function extractYouTubeId(url) {
-  if (!url || typeof url !== 'string') return null;
-  const match = url.trim().match(
-    /(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/|shorts\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
-  );
-  return match ? match[1] : null;
-}
-
-function extractGoogleDrivePreview(url) {
-  if (!url || typeof url !== 'string') return null;
-  const clean = url.trim();
-  const matchFile = clean.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-  if (matchFile) return `https://drive.google.com/file/d/${matchFile[1]}/preview`;
-  const matchId = clean.match(/drive\.google\.com\/(?:open|uc|file)\?(?:.*&)?id=([a-zA-Z0-9_-]+)/);
-  if (matchId) return `https://drive.google.com/file/d/${matchId[1]}/preview`;
-  return null;
-}
+import { generateVideoThumbnail, extractVideoDuration, parseDurationSeconds, extractYouTubeId, extractGoogleDrivePreview } from '../utils/videoStorage.js';
 
 export function AdminModal({ onClose }) {
   const { user, isAuthenticated, login, logout } = useAuth();

@@ -28,37 +28,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { useData, DEFAULT_VIDEOS } from '../context/DataContext.jsx';
-import { getLocalVideoBlobUrl, parseDurationSeconds } from '../utils/videoStorage.js';
-
-/**
- * Extracts YouTube Video ID from any standard URL format:
- * - https://youtu.be/ID?si=...
- * - https://www.youtube.com/watch?v=ID
- * - https://www.youtube.com/embed/ID
- * - https://www.youtube.com/shorts/ID
- * - https://www.youtube.com/live/ID
- */
-function extractYouTubeId(url) {
-  if (!url || typeof url !== 'string') return null;
-  const cleanUrl = url.trim();
-  const match = cleanUrl.match(
-    /(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/|shorts\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
-  );
-  return match ? match[1] : null;
-}
-
-/**
- * Extracts Google Drive preview URL from sharing links
- */
-export function extractGoogleDrivePreview(url) {
-  if (!url || typeof url !== 'string') return null;
-  const clean = url.trim();
-  const matchFile = clean.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-  if (matchFile) return `https://drive.google.com/file/d/${matchFile[1]}/preview`;
-  const matchId = clean.match(/drive\.google\.com\/(?:open|uc|file)\?(?:.*&)?id=([a-zA-Z0-9_-]+)/);
-  if (matchId) return `https://drive.google.com/file/d/${matchId[1]}/preview`;
-  return null;
-}
+import { getLocalVideoBlobUrl, parseDurationSeconds, extractYouTubeId, extractGoogleDrivePreview } from '../utils/videoStorage.js';
 
 export function VideoPlayerPane({ layoutMode = 'split', onToggleVideoFull }) {
   const { lang, t } = useLanguage();

@@ -1,7 +1,7 @@
 /**
- * IndexedDB Persistent Video Storage for POLIMDO Lab Signage
- * Allows local video files (MP4/WebM/MOV) to be stored permanently in browser storage (up to several GBs)
- * so they NEVER disappear when the browser is closed, refreshed, or restarted.
+ * IndexedDB Persistent Video Storage & YouTube Utility for POLIMDO Lab Signage
+ * Allows local video files (MP4/WebM/MOV) and YouTube/Cloud links to be stored permanently
+ * in browser storage so they NEVER disappear when refreshed, closed, or restarted.
  */
 
 const DB_NAME = 'PolimdoSignageVideoDB';
@@ -40,10 +40,72 @@ function getDB() {
 }
 
 /**
- * Saves a local Video File or Blob into IndexedDB permanently
+ * Robustly extracts YouTube Video ID from any standard URL format:
+ * - https://youtu.be/ID?si=...
+ * - https://www.youtube.com/watch?v=ID
+ * - https://www.youtube.com/embed/ID
+ * - https://www.youtube.com/shorts/ID
+ * - https://www.youtube.com/live/ID
+ * - http://m.youtube.com/...
+ */
+export function extractYouTubeId(url) {
+  if (!url || typeof url !== 'string') return null;
+  const clean = url.trim();
+  if (!clean) return null;
+
+  try {
+    // 1. Check youtu.be shortlinks
+    if (clean.includes('youtu.be/')) {
+      const path = clean.split('youtu.be/')[1];
+      const id = path.split(/[?&#/]/)[0];
+      if (id && id.length === 11) return id;
+    }
+
+    // 2. Check standard youtube.com links
+    if (clean.includes('youtube.com/')) {
+      const fullUrl = clean.startsWith('http') ? clean : `https://${clean}`;
+      const urlObj = new URL(fullUrl);
+
+      // Query param ?v=
+      const vParam = urlObj.searchParams.get('v');
+      if (vParam && vParam.length === 11) return vParam;
+
+      // Path based: /embed/ID, /shorts/ID, /live/ID, /v/ID
+      const pathParts = urlObj.pathname.split('/').filter(Boolean);
+      for (let i = 0; i < pathParts.length; i++) {
+        if (['embed', 'shorts', 'live', 'v'].includes(pathParts[i]) && pathParts[i + 1]) {
+          const possibleId = pathParts[i + 1].split(/[?&#/]/)[0];
+          if (possibleId && possibleId.length === 11) return possibleId;
+        }
+      }
+    }
+  } catch {}
+
+  // 3. Regex fallback
+  const match = clean.match(
+    /(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/|shorts\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i
+  );
+  return match ? match[1] : null;
+}
+
+/**
+ * Extracts Google Drive preview URL from sharing links
+ */
+export function extractGoogleDrivePreview(url) {
+  if (!url || typeof url !== 'string') return null;
+  const clean = url.trim();
+  const matchFile = clean.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (matchFile) return `https://drive.google.com/file/d/${matchFile[1]}/preview`;
+  const matchId = clean.match(/drive\.google\.com\/(?:open|uc|file)\?(?:.*&)?id=([a-zA-Z0-9_-]+)/);
+  if (matchId) return `https://drive.google.com/file/d/${matchId[1]}/preview`;
+  return null;
+}
+
+/**
+ * Saves a local Video File or YouTube/Cloud Link into IndexedDB permanently
  * @param {string} id - Unique video ID
- * @param {Blob|File} blob - Video file binary
- * @param {object} meta - Optional metadata (title, duration, thumbnail, etc.)
+ * @param {Blob|File|null} blob - Video file binary if local file, or null if cloud/YouTube
+ * @param {object} meta - Metadata (title, duration, thumbnail, url, etc.)
  * @returns {Promise<boolean>}
  */
 export async function saveLocalVideoBlob(id, blob, meta = {}) {
@@ -53,49 +115,45 @@ export async function saveLocalVideoBlob(id, blob, meta = {}) {
       const tx = db.transaction(STORE_NAME, 'readwrite');
       const store = tx.objectStore(STORE_NAME);
 
-      // If blob is not provided (e.g. metadata-only update), preserve existing blob
-      if (!blob) {
-        const getReq = store.get(id);
-        getReq.onsuccess = () => {
-          const existing = getReq.result || {};
-          const record = {
-            ...existing,
-            id,
-            updatedAt: Date.now(),
-            ...(meta.title ? { title: meta.title } : {}),
-            ...(meta.titleEn ? { titleEn: meta.titleEn } : {}),
-            ...(meta.category ? { category: meta.category } : {}),
-            ...(meta.duration ? { duration: meta.duration } : {}),
-            ...(meta.durationSec ? { durationSec: meta.durationSec } : {}),
-            ...(meta.thumbnail ? { thumbnail: meta.thumbnail } : {}),
-            ...(meta.description ? { description: meta.description } : {}),
-            ...(meta.scheduleSlot ? { scheduleSlot: meta.scheduleSlot } : {})
-          };
-          const putReq = store.put(record);
-          putReq.onsuccess = () => resolve(true);
-          putReq.onerror = (e) => reject(e.target.error);
-        };
-        getReq.onerror = (e) => reject(e.target.error);
-        return;
-      }
+      const getReq = store.get(id);
+      getReq.onsuccess = () => {
+        const existing = getReq.result || {};
+        
+        const finalBlob = blob || existing.blob || null;
+        const targetUrl = meta.url || meta.rawUrl || existing.url || (finalBlob ? `indexeddb://${id}` : '');
+        const targetRawUrl = meta.rawUrl || meta.url || existing.rawUrl || (finalBlob ? `indexeddb://${id}` : '');
+        const ytId = extractYouTubeId(targetUrl);
+        const autoThumb = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : '';
 
-      const record = {
-        id,
-        blob,
-        updatedAt: Date.now(),
-        type: blob.type || 'video/mp4',
-        title: meta.title || '',
-        titleEn: meta.titleEn || '',
-        category: meta.category || 'instructional',
-        duration: meta.duration || '03:00',
-        durationSec: meta.durationSec || 180,
-        thumbnail: meta.thumbnail || '',
-        description: meta.description || '',
-        scheduleSlot: meta.scheduleSlot || 'Rotasi Teratur'
+        const record = {
+          ...existing,
+          id,
+          blob: finalBlob,
+          url: targetUrl,
+          rawUrl: targetRawUrl,
+          updatedAt: Date.now(),
+          type: finalBlob?.type || 'video/mp4',
+          title: meta.title || existing.title || 'Video Signage',
+          titleEn: meta.titleEn || existing.titleEn || meta.title || existing.title || 'Signage Video',
+          category: meta.category || existing.category || 'instructional',
+          categoryEn: meta.categoryEn || existing.categoryEn || 'Instructional & Practicum',
+          duration: meta.duration || existing.duration || '03:00',
+          durationSec: parseDurationSeconds(meta.duration || existing.duration, meta.durationSec || existing.durationSec || 180),
+          thumbnail: meta.thumbnail || existing.thumbnail || autoThumb || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
+          description: meta.description || existing.description || '',
+          descriptionEn: meta.descriptionEn || existing.descriptionEn || '',
+          scheduleSlot: meta.scheduleSlot || existing.scheduleSlot || 'Rotasi Teratur',
+          active: meta.active !== false && existing.active !== false,
+          isActive: meta.isActive !== false && existing.isActive !== false,
+          loop: meta.loop !== false && existing.loop !== false,
+          order: meta.order || existing.order || 1
+        };
+
+        const putReq = store.put(record);
+        putReq.onsuccess = () => resolve(true);
+        putReq.onerror = (e) => reject(e.target.error);
       };
-      const req = store.put(record);
-      req.onsuccess = () => resolve(true);
-      req.onerror = (e) => reject(e.target.error);
+      getReq.onerror = (e) => reject(e.target.error);
     });
   } catch (err) {
     console.error('Failed to save video to IndexedDB:', err);
@@ -117,9 +175,13 @@ export async function getLocalVideoBlobUrl(id) {
       const req = store.get(id);
       req.onsuccess = () => {
         const record = req.result;
-        if (record && record.blob) {
-          const blobUrl = URL.createObjectURL(record.blob);
-          resolve(blobUrl);
+        if (record && record.blob && record.blob instanceof Blob) {
+          try {
+            const blobUrl = URL.createObjectURL(record.blob);
+            resolve(blobUrl);
+          } catch {
+            resolve(null);
+          }
         } else {
           resolve(null);
         }
@@ -133,7 +195,7 @@ export async function getLocalVideoBlobUrl(id) {
 }
 
 /**
- * Deletes a local Video Blob from IndexedDB
+ * Deletes a local Video from IndexedDB
  * @param {string} id
  */
 export async function deleteLocalVideoBlob(id) {
@@ -204,37 +266,32 @@ export function generateVideoThumbnail(file) {
       tempUrl = URL.createObjectURL(file);
       video.src = tempUrl;
 
-      const captureFrame = () => {
+      video.onloadeddata = () => {
+        try {
+          video.currentTime = Math.min(1.0, (video.duration || 2) / 2);
+        } catch {
+          capture();
+        }
+      };
+
+      video.onseeked = () => {
+        capture();
+      };
+
+      const capture = () => {
         try {
           const canvas = document.createElement('canvas');
-          const maxW = 640;
-          let w = video.videoWidth || 640;
-          let h = video.videoHeight || 360;
-
-          if (w > maxW) {
-            h = Math.round((h * maxW) / w);
-            w = maxW;
-          }
-
-          canvas.width = w;
-          canvas.height = h;
+          canvas.width = 640;
+          canvas.height = 360;
           const ctx = canvas.getContext('2d');
-          ctx.drawImage(video, 0, 0, w, h);
-          const thumbBase64 = canvas.toDataURL('image/jpeg', 0.85);
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
           clearTimeout(timer);
-          finish(thumbBase64);
+          finish(dataUrl);
         } catch {
           clearTimeout(timer);
           finish('');
         }
-      };
-
-      video.onloadedmetadata = () => {
-        video.currentTime = Math.min(1, Math.max(0.1, (video.duration || 1) * 0.1));
-      };
-
-      video.onseeked = () => {
-        captureFrame();
       };
 
       video.onerror = () => {
@@ -251,7 +308,7 @@ export function generateVideoThumbnail(file) {
 }
 
 /**
- * Extracts exact duration string (MM:SS) and seconds from a Video File
+ * Extracts exact duration from a video file
  * @param {File|Blob} file
  * @returns {Promise<{duration: string, durationSec: number}>}
  */
@@ -268,7 +325,7 @@ export function extractVideoDuration(file) {
       resolve(result);
     };
 
-    const timer = setTimeout(() => finish({ duration: '03:00', durationSec: 180 }), 3000);
+    const timer = setTimeout(() => finish({ duration: '03:00', durationSec: 180 }), 4000);
 
     try {
       const video = document.createElement('video');
