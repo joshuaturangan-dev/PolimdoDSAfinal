@@ -593,6 +593,78 @@ export async function fileToBase64(file, maxWidth = 600, quality = 0.85) {
   });
 }
 
+const getInitialSchedules = () => {
+  if (typeof window === 'undefined') return DEFAULT_SCHEDULES;
+  try {
+    const raw = localStorage.getItem('polimdo_cached_schedules');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {}
+  return DEFAULT_SCHEDULES;
+};
+
+const getInitialFaculty = () => {
+  if (typeof window === 'undefined') return DEFAULT_FACULTY;
+  try {
+    const raw = localStorage.getItem('polimdo_cached_faculty');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {}
+  return DEFAULT_FACULTY;
+};
+
+const getInitialAnnouncements = () => {
+  if (typeof window === 'undefined') return DEFAULT_ANNOUNCEMENTS;
+  try {
+    const raw = localStorage.getItem('polimdo_cached_announcements');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {}
+  return DEFAULT_ANNOUNCEMENTS;
+};
+
+const getInitialInventory = () => {
+  if (typeof window === 'undefined') return DEFAULT_INVENTORY;
+  try {
+    const raw = localStorage.getItem('polimdo_cached_inventory');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {}
+  return DEFAULT_INVENTORY;
+};
+
+const getInitialBookings = () => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem('polimdo_cached_bookings');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  return [];
+};
+
+const getInitialLabZones = () => {
+  if (typeof window === 'undefined') return DEFAULT_LAB_ZONES;
+  try {
+    const raw = localStorage.getItem('polimdo_cached_lab_zones');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {}
+  return DEFAULT_LAB_ZONES;
+};
+
 const getInitialVideos = () => {
   if (typeof window === 'undefined') return DEFAULT_VIDEOS;
   try {
@@ -612,13 +684,13 @@ const DataContext = createContext();
 export function DataProvider({ children }) {
   const { token } = useAuth();
 
-  const [schedules, setSchedules] = useState(DEFAULT_SCHEDULES);
-  const [faculty, setFaculty] = useState(DEFAULT_FACULTY);
+  const [schedules, setSchedules] = useState(getInitialSchedules);
+  const [faculty, setFaculty] = useState(getInitialFaculty);
   const [videos, setVideos] = useState(getInitialVideos);
-  const [announcements, setAnnouncements] = useState(DEFAULT_ANNOUNCEMENTS);
-  const [inventory, setInventory] = useState(DEFAULT_INVENTORY);
-  const [bookings, setBookings] = useState([]);
-  const [labZones, setLabZones] = useState(DEFAULT_LAB_ZONES);
+  const [announcements, setAnnouncements] = useState(getInitialAnnouncements);
+  const [inventory, setInventory] = useState(getInitialInventory);
+  const [bookings, setBookings] = useState(getInitialBookings);
+  const [labZones, setLabZones] = useState(getInitialLabZones);
   const [loading, setLoading] = useState(false);
 
   // Fetch all data from Supabase Cloud or API
@@ -646,7 +718,7 @@ export function DataProvider({ children }) {
           ]);
 
           if (schData && schData.length > 0) {
-            setSchedules(schData.map(s => ({
+            const mappedSchedules = schData.map(s => ({
               id: s.id,
               day: s.day,
               dayEn: s.day_en || s.dayEn,
@@ -657,18 +729,22 @@ export function DataProvider({ children }) {
               courseNameEn: s.course_name_en || s.courseNameEn,
               lecturer: s.lecturer,
               className: s.class_name || s.className,
-              semester: s.semester,
+              semester: Number(s.semester) || 1,
               room: s.room,
-              credits: s.credits,
+              credits: Number(s.credits) || 3,
               topic: s.topic,
               upcomingTask: s.upcoming_task || s.upcomingTask,
               academicYear: s.academic_year || s.academicYear,
               color: s.color || "blue"
-            })));
+            }));
+            setSchedules(mappedSchedules);
+            try {
+              localStorage.setItem('polimdo_cached_schedules', JSON.stringify(mappedSchedules));
+            } catch {}
           }
 
           if (facData && facData.length > 0) {
-            setFaculty(facData.map(f => ({
+            const mappedFaculty = facData.map(f => ({
               id: f.id,
               name: f.name,
               title: f.title,
@@ -685,7 +761,11 @@ export function DataProvider({ children }) {
               photo: f.photo,
               bio: f.bio,
               bioEn: f.bio_en || f.bioEn
-            })));
+            }));
+            setFaculty(mappedFaculty);
+            try {
+              localStorage.setItem('polimdo_cached_faculty', JSON.stringify(mappedFaculty));
+            } catch {}
           }
 
           if (supabase) {
@@ -783,7 +863,7 @@ export function DataProvider({ children }) {
           }
 
           if (annData && annData.length > 0) {
-            setAnnouncements(annData.map(a => ({
+            const mappedAnnouncements = annData.map(a => ({
               id: a.id,
               title: a.title,
               titleEn: a.title_en || a.titleEn || a.title,
@@ -798,11 +878,15 @@ export function DataProvider({ children }) {
               author: a.author || "Jurusan Teknik Elektro",
               isActive: a.is_active !== false && a.isActive !== false && a.active !== false,
               active: a.is_active !== false && a.isActive !== false && a.active !== false
-            })));
+            }));
+            setAnnouncements(mappedAnnouncements);
+            try {
+              localStorage.setItem('polimdo_cached_announcements', JSON.stringify(mappedAnnouncements));
+            } catch {}
           }
 
           if (invData && invData.length > 0) {
-            setInventory(invData.map(i => ({
+            const mappedInventory = invData.map(i => ({
               id: i.id,
               name: i.name,
               nameEn: i.name_en || i.nameEn || i.name,
@@ -821,13 +905,22 @@ export function DataProvider({ children }) {
               specsEn: i.specs_en || i.specsEn || i.specs || "",
               safetyRating: i.safety_rating || i.safetyRating || "Standard Safety",
               image: i.image || "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=300&q=80",
-            })));
+            }));
+            setInventory(mappedInventory);
+            try {
+              localStorage.setItem('polimdo_cached_inventory', JSON.stringify(mappedInventory));
+            } catch {}
           }
 
-          if (bkData) setBookings(bkData);
+          if (bkData) {
+            setBookings(bkData);
+            try {
+              localStorage.setItem('polimdo_cached_bookings', JSON.stringify(bkData));
+            } catch {}
+          }
 
           if (lzData?.length) {
-            setLabZones(DEFAULT_LAB_ZONES.map(defaultZone => {
+            const mappedZones = DEFAULT_LAB_ZONES.map(defaultZone => {
               const supaZone = lzData.find(z => z.id === defaultZone.id || z.code === defaultZone.code);
               if (!supaZone) return defaultZone;
               return {
@@ -842,7 +935,11 @@ export function DataProvider({ children }) {
                 safetyLevel: supaZone.safety_level || defaultZone.safetyLevel,
                 capacity: supaZone.max_capacity ? `${supaZone.max_capacity} Mahasiswa` : defaultZone.capacity
               };
-            }));
+            });
+            setLabZones(mappedZones);
+            try {
+              localStorage.setItem('polimdo_cached_lab_zones', JSON.stringify(mappedZones));
+            } catch {}
           }
 
           setLoading(false);
@@ -858,14 +955,32 @@ export function DataProvider({ children }) {
         endpoints.map(ep => fetch(getApiUrl(`/api/${ep}`)).then(r => r.ok ? r.json() : null))
       );
 
-      if (results[0].status === "fulfilled" && results[0].value?.success) setSchedules(results[0].value.data);
-      if (results[1].status === "fulfilled" && results[1].value?.success) setFaculty(results[1].value.data);
-      if (results[2].status === "fulfilled" && results[2].value?.success) setVideos(results[2].value.data);
-      if (results[3].status === "fulfilled" && results[3].value?.success) setAnnouncements(results[3].value.data);
-      if (results[4].status === "fulfilled" && results[4].value?.success) setInventory(results[4].value.data);
-      if (results[5].status === "fulfilled" && results[5].value?.success) setBookings(results[5].value.data);
+      if (results[0].status === "fulfilled" && results[0].value?.success && results[0].value.data?.length > 0) {
+        setSchedules(results[0].value.data);
+        try { localStorage.setItem('polimdo_cached_schedules', JSON.stringify(results[0].value.data)); } catch {}
+      }
+      if (results[1].status === "fulfilled" && results[1].value?.success && results[1].value.data?.length > 0) {
+        setFaculty(results[1].value.data);
+        try { localStorage.setItem('polimdo_cached_faculty', JSON.stringify(results[1].value.data)); } catch {}
+      }
+      if (results[2].status === "fulfilled" && results[2].value?.success && results[2].value.data?.length > 0) {
+        setVideos(results[2].value.data);
+        try { localStorage.setItem('polimdo_cached_videos', JSON.stringify(results[2].value.data)); } catch {}
+      }
+      if (results[3].status === "fulfilled" && results[3].value?.success && results[3].value.data?.length > 0) {
+        setAnnouncements(results[3].value.data);
+        try { localStorage.setItem('polimdo_cached_announcements', JSON.stringify(results[3].value.data)); } catch {}
+      }
+      if (results[4].status === "fulfilled" && results[4].value?.success && results[4].value.data?.length > 0) {
+        setInventory(results[4].value.data);
+        try { localStorage.setItem('polimdo_cached_inventory', JSON.stringify(results[4].value.data)); } catch {}
+      }
+      if (results[5].status === "fulfilled" && results[5].value?.success && results[5].value.data) {
+        setBookings(results[5].value.data);
+        try { localStorage.setItem('polimdo_cached_bookings', JSON.stringify(results[5].value.data)); } catch {}
+      }
       if (results[6].status === "fulfilled" && results[6].value?.success && results[6].value.data?.length) {
-        setLabZones(DEFAULT_LAB_ZONES.map(defaultZone => {
+        const mappedZones = DEFAULT_LAB_ZONES.map(defaultZone => {
           const apiZone = results[6].value.data.find(z => z.id === defaultZone.id || z.code === defaultZone.code);
           if (!apiZone) return defaultZone;
           return {
@@ -874,7 +989,9 @@ export function DataProvider({ children }) {
             coords: apiZone.coords || defaultZone.coords,
             equipment: apiZone.equipment || defaultZone.equipment
           };
-        }));
+        });
+        setLabZones(mappedZones);
+        try { localStorage.setItem('polimdo_cached_lab_zones', JSON.stringify(mappedZones)); } catch {}
       }
     } catch (err) {
       console.error("Failed to fetch data:", err);
@@ -897,9 +1014,28 @@ export function DataProvider({ children }) {
 
   // Schedule operations
   const addSchedule = async (scheduleData) => {
-    const newId = `sch_${Date.now()}`;
-    const newObj = { ...scheduleData, id: newId };
-    setSchedules(prev => [...prev, newObj]);
+    const dayEnMap = {
+      'senin': 'Monday', 'selasa': 'Tuesday', 'rabu': 'Wednesday',
+      'kamis': 'Thursday', 'jumat': 'Friday', 'sabtu': 'Saturday', 'minggu': 'Sunday'
+    };
+    const newId = scheduleData.id || `sch_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+    const newObj = {
+      ...scheduleData,
+      id: newId,
+      dayEn: scheduleData.dayEn || dayEnMap[String(scheduleData.day || '').trim().toLowerCase()] || 'Monday',
+      semester: Number(scheduleData.semester) || 1,
+      credits: Number(scheduleData.credits) || 3,
+      academicYear: scheduleData.academicYear || "2025/2026 Ganjil",
+      color: scheduleData.color || "blue"
+    };
+
+    setSchedules(prev => {
+      const nextList = [...prev, newObj];
+      try {
+        localStorage.setItem('polimdo_cached_schedules', JSON.stringify(nextList));
+      } catch {}
+      return nextList;
+    });
 
     if (supabase) {
       try {
@@ -922,7 +1058,7 @@ export function DataProvider({ children }) {
           academic_year: newObj.academicYear || "2025/2026 Ganjil",
           color: newObj.color || "blue"
         });
-      } catch (e) { console.warn("Supabase schedule insert error:", e); }
+      } catch (e) { console.warn("Supabase schedule insert notice:", e); }
     }
 
     try {
@@ -937,7 +1073,13 @@ export function DataProvider({ children }) {
   };
 
   const updateSchedule = async (id, scheduleData) => {
-    setSchedules(prev => prev.map(s => s.id === id ? { ...s, ...scheduleData } : s));
+    setSchedules(prev => {
+      const nextList = prev.map(s => s.id === id ? { ...s, ...scheduleData } : s);
+      try {
+        localStorage.setItem('polimdo_cached_schedules', JSON.stringify(nextList));
+      } catch {}
+      return nextList;
+    });
 
     if (supabase) {
       try {
@@ -959,7 +1101,7 @@ export function DataProvider({ children }) {
           academic_year: scheduleData.academicYear,
           color: scheduleData.color
         }).eq("id", id);
-      } catch (e) { console.warn("Supabase schedule update error:", e); }
+      } catch (e) { console.warn("Supabase schedule update notice:", e); }
     }
 
     try {
@@ -974,12 +1116,18 @@ export function DataProvider({ children }) {
   };
 
   const deleteSchedule = async (id) => {
-    setSchedules(prev => prev.filter(s => s.id !== id));
+    setSchedules(prev => {
+      const nextList = prev.filter(s => s.id !== id);
+      try {
+        localStorage.setItem('polimdo_cached_schedules', JSON.stringify(nextList));
+      } catch {}
+      return nextList;
+    });
 
     if (supabase) {
       try {
         await supabase.from("schedules").delete().eq("id", id);
-      } catch (e) { console.warn("Supabase schedule delete error:", e); }
+      } catch (e) { console.warn("Supabase schedule delete notice:", e); }
     }
 
     try {
@@ -993,21 +1141,58 @@ export function DataProvider({ children }) {
   };
 
   const importSchedulesFromExcel = async (items, mode = "append") => {
-    if (mode === "replace") {
-      setSchedules(items);
-      if (supabase) {
-        try {
-          await supabase.from("schedules").delete().neq("id", "0");
-        } catch {}
+    const dayEnMap = {
+      'senin': 'Monday', 'selasa': 'Tuesday', 'rabu': 'Wednesday',
+      'kamis': 'Thursday', 'jumat': 'Friday', 'sabtu': 'Saturday', 'minggu': 'Sunday'
+    };
+    const colors = ['blue', 'cyan', 'emerald', 'amber', 'purple', 'red', 'yellow', 'indigo'];
+
+    const formattedItems = items.map((s, idx) => {
+      const day = s.day || s['Hari'] || 'Senin';
+      const dayEn = s.dayEn || s['Hari (EN)'] || dayEnMap[String(day).trim().toLowerCase()] || 'Monday';
+      return {
+        id: s.id || `sch_${Date.now()}_${idx}_${Math.random().toString(36).substr(2, 4)}`,
+        day,
+        dayEn,
+        startTime: s.startTime || s['Jam Mulai'] || '08:00',
+        endTime: s.endTime || s['Jam Selesai'] || '11:30',
+        courseCode: s.courseCode || s['Kode MK'] || `TL-${4100 + idx}`,
+        courseName: s.courseName || s['Mata Kuliah'] || 'Praktikum Kelistrikan',
+        courseNameEn: s.courseNameEn || s['Mata Kuliah (EN)'] || s.courseName || 'Electrical Practicum',
+        lecturer: s.lecturer || s['Dosen'] || 'Dosen Pengampu',
+        className: s.className || s['Kelas'] || 'D4-TL-3A',
+        semester: Number(s.semester || s['Semester']) || 1,
+        room: s.room || s['Ruangan / Meja'] || 'Lab Instalasi Listrik',
+        credits: Number(s.credits || s['SKS']) || 3,
+        topic: s.topic || s['Materi'] || '',
+        upcomingTask: s.upcomingTask || s['Tugas Mendatang'] || '',
+        academicYear: s.academicYear || s['Tahun Akademik'] || '2025/2026 Ganjil',
+        color: s.color || colors[idx % colors.length]
+      };
+    });
+
+    setSchedules(prev => {
+      let nextList = [];
+      if (mode === "replace") {
+        nextList = formattedItems;
+      } else {
+        nextList = [...prev, ...formattedItems];
       }
-    } else {
-      setSchedules(prev => [...prev, ...items]);
-    }
+      try {
+        localStorage.setItem('polimdo_cached_schedules', JSON.stringify(nextList));
+      } catch (e) {
+        console.warn("LocalStorage save error:", e);
+      }
+      return nextList;
+    });
 
     if (supabase) {
       try {
-        const rows = items.map(s => ({
-          id: s.id || `sch_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+        if (mode === "replace") {
+          await supabase.from("schedules").delete().neq("id", "0");
+        }
+        const rows = formattedItems.map(s => ({
+          id: s.id,
           day: s.day,
           day_en: s.dayEn,
           start_time: s.startTime,
@@ -1026,25 +1211,31 @@ export function DataProvider({ children }) {
           color: s.color || "blue"
         }));
         await supabase.from("schedules").upsert(rows);
-      } catch (e) { console.warn("Supabase excel import error:", e); }
+      } catch (e) { console.warn("Supabase excel import notice:", e); }
     }
 
     try {
       await fetch(getApiUrl("/api/schedules/import-excel"), {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify({ items, mode })
+        body: JSON.stringify({ items: formattedItems, mode })
       });
     } catch {}
 
-    return { success: true };
+    return { success: true, count: formattedItems.length };
   };
 
   // Faculty operations
   const addFaculty = async (facultyData) => {
-    const newId = `fac_${Date.now()}`;
+    const newId = facultyData.id || `fac_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
     const newObj = { ...facultyData, id: newId };
-    setFaculty(prev => [...prev, newObj]);
+    setFaculty(prev => {
+      const nextList = [...prev, newObj];
+      try {
+        localStorage.setItem('polimdo_cached_faculty', JSON.stringify(nextList));
+      } catch {}
+      return nextList;
+    });
 
     if (supabase) {
       try {
@@ -1066,7 +1257,7 @@ export function DataProvider({ children }) {
           bio: newObj.bio,
           bio_en: newObj.bioEn
         });
-      } catch (e) { console.warn("Supabase faculty insert error:", e); }
+      } catch (e) { console.warn("Supabase faculty insert notice:", e); }
     }
 
     try {
@@ -1081,7 +1272,13 @@ export function DataProvider({ children }) {
   };
 
   const updateFaculty = async (id, facultyData) => {
-    setFaculty(prev => prev.map(f => f.id === id ? { ...f, ...facultyData } : f));
+    setFaculty(prev => {
+      const nextList = prev.map(f => f.id === id ? { ...f, ...facultyData } : f);
+      try {
+        localStorage.setItem('polimdo_cached_faculty', JSON.stringify(nextList));
+      } catch {}
+      return nextList;
+    });
 
     if (supabase) {
       try {
@@ -1102,7 +1299,7 @@ export function DataProvider({ children }) {
           bio: facultyData.bio,
           bio_en: facultyData.bioEn
         }).eq("id", id);
-      } catch (e) { console.warn("Supabase faculty update error:", e); }
+      } catch (e) { console.warn("Supabase faculty update notice:", e); }
     }
 
     try {
@@ -1117,12 +1314,18 @@ export function DataProvider({ children }) {
   };
 
   const deleteFaculty = async (id) => {
-    setFaculty(prev => prev.filter(f => f.id !== id));
+    setFaculty(prev => {
+      const nextList = prev.filter(f => f.id !== id);
+      try {
+        localStorage.setItem('polimdo_cached_faculty', JSON.stringify(nextList));
+      } catch {}
+      return nextList;
+    });
 
     if (supabase) {
       try {
         await supabase.from("faculty").delete().eq("id", id);
-      } catch (e) { console.warn("Supabase faculty delete error:", e); }
+      } catch (e) { console.warn("Supabase faculty delete notice:", e); }
     }
 
     try {
@@ -1414,13 +1617,19 @@ export function DataProvider({ children }) {
 
   // Announcement operations
   const addAnnouncement = async (annData) => {
-    const newId = `ann_${Date.now()}`;
+    const newId = annData.id || `ann_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
     const newObj = {
       ...annData,
       id: newId,
       date: annData.date || new Date().toISOString().split("T")[0]
     };
-    setAnnouncements(prev => [newObj, ...prev]);
+    setAnnouncements(prev => {
+      const nextList = [newObj, ...prev];
+      try {
+        localStorage.setItem('polimdo_cached_announcements', JSON.stringify(nextList));
+      } catch {}
+      return nextList;
+    });
 
     if (supabase) {
       try {
@@ -1437,7 +1646,7 @@ export function DataProvider({ children }) {
           valid_until: newObj.validUntil,
           author: newObj.author || "Admin Lab"
         });
-      } catch (e) { console.warn("Supabase announcement insert error:", e); }
+      } catch (e) { console.warn("Supabase announcement insert notice:", e); }
     }
 
     try {
@@ -1452,7 +1661,13 @@ export function DataProvider({ children }) {
   };
 
   const updateAnnouncement = async (id, annData) => {
-    setAnnouncements(prev => prev.map(a => a.id === id ? { ...a, ...annData } : a));
+    setAnnouncements(prev => {
+      const nextList = prev.map(a => a.id === id ? { ...a, ...annData } : a);
+      try {
+        localStorage.setItem('polimdo_cached_announcements', JSON.stringify(nextList));
+      } catch {}
+      return nextList;
+    });
 
     if (supabase) {
       try {
@@ -1468,7 +1683,7 @@ export function DataProvider({ children }) {
           valid_until: annData.validUntil,
           author: annData.author
         }).eq("id", id);
-      } catch (e) { console.warn("Supabase announcement update error:", e); }
+      } catch (e) { console.warn("Supabase announcement update notice:", e); }
     }
 
     try {
@@ -1483,12 +1698,18 @@ export function DataProvider({ children }) {
   };
 
   const deleteAnnouncement = async (id) => {
-    setAnnouncements(prev => prev.filter(a => a.id !== id));
+    setAnnouncements(prev => {
+      const nextList = prev.filter(a => a.id !== id);
+      try {
+        localStorage.setItem('polimdo_cached_announcements', JSON.stringify(nextList));
+      } catch {}
+      return nextList;
+    });
 
     if (supabase) {
       try {
         await supabase.from("announcements").delete().eq("id", id);
-      } catch (e) { console.warn("Supabase announcement delete error:", e); }
+      } catch (e) { console.warn("Supabase announcement delete notice:", e); }
     }
 
     try {
@@ -1503,9 +1724,15 @@ export function DataProvider({ children }) {
 
   // Inventory & Booking operations
   const addInventoryItem = async (itemData) => {
-    const newId = `inv_${Date.now()}`;
+    const newId = itemData.id || `inv_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
     const newObj = { ...itemData, id: newId };
-    setInventory(prev => [...prev, newObj]);
+    setInventory(prev => {
+      const nextList = [...prev, newObj];
+      try {
+        localStorage.setItem('polimdo_cached_inventory', JSON.stringify(nextList));
+      } catch {}
+      return nextList;
+    });
 
     if (supabase) {
       try {
@@ -1530,7 +1757,7 @@ export function DataProvider({ children }) {
           image: newObj.image,
           allowed_roles: newObj.allowedRoles
         });
-      } catch (e) { console.warn("Supabase inventory insert error:", e); }
+      } catch (e) { console.warn("Supabase inventory insert notice:", e); }
     }
 
     try {
@@ -1545,7 +1772,13 @@ export function DataProvider({ children }) {
   };
 
   const updateInventoryItem = async (id, itemData) => {
-    setInventory(prev => prev.map(i => i.id === id ? { ...i, ...itemData } : i));
+    setInventory(prev => {
+      const nextList = prev.map(i => i.id === id ? { ...i, ...itemData } : i);
+      try {
+        localStorage.setItem('polimdo_cached_inventory', JSON.stringify(nextList));
+      } catch {}
+      return nextList;
+    });
 
     if (supabase) {
       try {
@@ -1569,7 +1802,7 @@ export function DataProvider({ children }) {
           image: itemData.image,
           allowed_roles: itemData.allowedRoles
         }).eq("id", id);
-      } catch (e) { console.warn("Supabase inventory update error:", e); }
+      } catch (e) { console.warn("Supabase inventory update notice:", e); }
     }
 
     try {
@@ -1584,12 +1817,18 @@ export function DataProvider({ children }) {
   };
 
   const deleteInventoryItem = async (id) => {
-    setInventory(prev => prev.filter(i => i.id !== id));
+    setInventory(prev => {
+      const nextList = prev.filter(i => i.id !== id);
+      try {
+        localStorage.setItem('polimdo_cached_inventory', JSON.stringify(nextList));
+      } catch {}
+      return nextList;
+    });
 
     if (supabase) {
       try {
         await supabase.from("inventory").delete().eq("id", id);
-      } catch (e) { console.warn("Supabase inventory delete error:", e); }
+      } catch (e) { console.warn("Supabase inventory delete notice:", e); }
     }
 
     try {
@@ -1603,9 +1842,15 @@ export function DataProvider({ children }) {
   };
 
   const submitBookingRequest = async (bookingData) => {
-    const newId = `bk_${Date.now()}`;
+    const newId = bookingData.id || `bk_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
     const newObj = { ...bookingData, id: newId, status: "pending", createdAt: new Date().toISOString() };
-    setBookings(prev => [newObj, ...prev]);
+    setBookings(prev => {
+      const nextList = [newObj, ...prev];
+      try {
+        localStorage.setItem('polimdo_cached_bookings', JSON.stringify(nextList));
+      } catch {}
+      return nextList;
+    });
 
     if (supabase) {
       try {
@@ -1624,7 +1869,7 @@ export function DataProvider({ children }) {
           status: "pending",
           notes: newObj.notes || ""
         });
-      } catch (e) { console.warn("Supabase booking insert error:", e); }
+      } catch (e) { console.warn("Supabase booking insert notice:", e); }
     }
 
     try {
@@ -1639,12 +1884,18 @@ export function DataProvider({ children }) {
   };
 
   const updateBookingStatus = async (id, status, notes = "") => {
-    setBookings(prev => prev.map(b => b.id === id ? { ...b, status, notes } : b));
+    setBookings(prev => {
+      const nextList = prev.map(b => b.id === id ? { ...b, status, notes } : b);
+      try {
+        localStorage.setItem('polimdo_cached_bookings', JSON.stringify(nextList));
+      } catch {}
+      return nextList;
+    });
 
     if (supabase) {
       try {
         await supabase.from("bookings").update({ status, notes }).eq("id", id);
-      } catch (e) { console.warn("Supabase booking status update error:", e); }
+      } catch (e) { console.warn("Supabase booking status update notice:", e); }
     }
 
     try {
@@ -1660,7 +1911,13 @@ export function DataProvider({ children }) {
 
   // Lab Zones
   const updateLabZone = async (id, zoneData) => {
-    setLabZones(prev => prev.map(z => z.id === id ? { ...z, ...zoneData } : z));
+    setLabZones(prev => {
+      const nextList = prev.map(z => z.id === id ? { ...z, ...zoneData } : z);
+      try {
+        localStorage.setItem('polimdo_cached_lab_zones', JSON.stringify(nextList));
+      } catch {}
+      return nextList;
+    });
 
     if (supabase) {
       try {
@@ -1672,7 +1929,7 @@ export function DataProvider({ children }) {
           current_occupancy: Number(zoneData.currentOccupancy),
           safety_level: zoneData.safetyLevel
         }).eq("id", id);
-      } catch (e) { console.warn("Supabase lab_zone update error:", e); }
+      } catch (e) { console.warn("Supabase lab_zone update notice:", e); }
     }
 
     try {

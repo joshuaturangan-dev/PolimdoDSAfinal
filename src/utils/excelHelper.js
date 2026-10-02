@@ -74,7 +74,14 @@ export function normalizeScheduleRow(row, idx) {
   const cleanEndTime = formatExcelTime(endTime) || '11:30';
 
   const day = row['Hari'] || row['day'] || row['Day'] || 'Senin';
-  const courseCode = row['Kode MK'] || row['Kode'] || row['courseCode'] || row['Code'] || '';
+  const dayEnMap = {
+    'senin': 'Monday', 'selasa': 'Tuesday', 'rabu': 'Wednesday',
+    'kamis': 'Thursday', 'jumat': 'Friday', 'sabtu': 'Saturday', 'minggu': 'Sunday'
+  };
+  const dayEn = row['Hari (EN)'] || row['dayEn'] || dayEnMap[String(day).trim().toLowerCase()] || 'Monday';
+
+  const colors = ['blue', 'cyan', 'emerald', 'amber', 'purple', 'red', 'yellow', 'indigo'];
+  const courseCode = row['Kode MK'] || row['Kode'] || row['courseCode'] || row['Code'] || `TL-${4100 + (idx || 1)}`;
   const courseName = row['Mata Kuliah'] || row['courseName'] || row['Mata_Kuliah'] || row['Course'] || row['Nama MK'] || 'Praktikum Kelistrikan';
   const courseNameEn = row['Mata Kuliah (EN)'] || row['courseNameEn'] || courseName;
   const lecturer = row['Dosen'] || row['lecturer'] || row['Dosen Pengampu'] || row['Lecturer'] || row['Pengajar'] || 'Dosen Pengampu';
@@ -84,9 +91,14 @@ export function normalizeScheduleRow(row, idx) {
   const credits = Number(row['SKS'] || row['credits'] || row['Credits'] || 3) || 3;
   const topic = row['Materi'] || row['Topik'] || row['topic'] || row['Topic'] || row['Job Sheet'] || '';
   const upcomingTask = row['Tugas Mendatang'] || row['upcomingTask'] || row['Upcoming Task'] || '';
+  const academicYear = row['Tahun Akademik'] || row['academicYear'] || '2025/2026 Ganjil';
+  const color = row['color'] || colors[(idx || 0) % colors.length];
+  const id = row['id'] || `sch_${Date.now()}_${idx || 0}_${Math.random().toString(36).substr(2, 4)}`;
 
   return {
+    id,
     'Hari': day,
+    'Hari (EN)': dayEn,
     'Jam Mulai': cleanStartTime,
     'Jam Selesai': cleanEndTime,
     'Waktu': `${cleanStartTime} - ${cleanEndTime}`,
@@ -101,6 +113,7 @@ export function normalizeScheduleRow(row, idx) {
     'Tugas Mendatang': upcomingTask,
     // Standard schema keys
     day,
+    dayEn,
     startTime: cleanStartTime,
     endTime: cleanEndTime,
     courseCode,
@@ -112,7 +125,9 @@ export function normalizeScheduleRow(row, idx) {
     room,
     credits,
     topic,
-    upcomingTask
+    upcomingTask,
+    academicYear,
+    color
   };
 }
 
