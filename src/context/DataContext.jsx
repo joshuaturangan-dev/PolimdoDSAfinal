@@ -693,6 +693,57 @@ export function DataProvider({ children }) {
   const [labZones, setLabZones] = useState(getInitialLabZones);
   const [loading, setLoading] = useState(false);
 
+  // Automatic URL Sync Payload Importer (e.g. ?sync=... opened on Smart TV or another device)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const syncPayload = urlParams.get('sync') || hashParams.get('sync');
+
+      if (syncPayload) {
+        let jsonStr = '';
+        try {
+          jsonStr = decodeURIComponent(escape(atob(syncPayload)));
+        } catch {
+          jsonStr = decodeURIComponent(syncPayload);
+        }
+
+        if (jsonStr) {
+          const parsed = JSON.parse(jsonStr);
+          if (parsed && typeof parsed === 'object') {
+            if (Array.isArray(parsed.videos) && parsed.videos.length > 0) {
+              setVideos(parsed.videos);
+              try { localStorage.setItem('polimdo_cached_videos', JSON.stringify(parsed.videos)); } catch {}
+            }
+            if (Array.isArray(parsed.schedules) && parsed.schedules.length > 0) {
+              setSchedules(parsed.schedules);
+              try { localStorage.setItem('polimdo_cached_schedules', JSON.stringify(parsed.schedules)); } catch {}
+            }
+            if (Array.isArray(parsed.announcements) && parsed.announcements.length > 0) {
+              setAnnouncements(parsed.announcements);
+              try { localStorage.setItem('polimdo_cached_announcements', JSON.stringify(parsed.announcements)); } catch {}
+            }
+            if (Array.isArray(parsed.faculty) && parsed.faculty.length > 0) {
+              setFaculty(parsed.faculty);
+              try { localStorage.setItem('polimdo_cached_faculty', JSON.stringify(parsed.faculty)); } catch {}
+            }
+            if (Array.isArray(parsed.inventory) && parsed.inventory.length > 0) {
+              setInventory(parsed.inventory);
+              try { localStorage.setItem('polimdo_cached_inventory', JSON.stringify(parsed.inventory)); } catch {}
+            }
+            // Clean URL query without page reload
+            const cleanUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, cleanUrl);
+            console.log('✅ Synchronized state imported from TV Sync URL successfully!');
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('URL sync payload parser notice:', e);
+    }
+  }, []);
+
   // Fetch all data from Supabase Cloud or API
   const fetchAllData = useCallback(async () => {
     try {
@@ -1943,6 +1994,140 @@ export function DataProvider({ children }) {
     return { success: true };
   };
 
+  // Generate a universal TV Sync URL with full playlist, schedules, faculty, and announcements
+  const generateTvSyncUrl = (originOverride) => {
+    try {
+      const payload = {
+        videos: videos.map(v => ({
+          id: v.id,
+          title: v.title,
+          titleEn: v.titleEn,
+          category: v.category,
+          categoryName: v.categoryName,
+          duration: v.duration,
+          durationSec: v.durationSec,
+          url: v.rawUrl || v.url,
+          rawUrl: v.rawUrl || v.url,
+          thumbnail: v.thumbnail,
+          active: v.active,
+          isActive: v.isActive,
+          loop: v.loop,
+          scheduleSlot: v.scheduleSlot,
+          order: v.order
+        })),
+        schedules: schedules.map(s => ({
+          id: s.id,
+          day: s.day,
+          dayEn: s.dayEn,
+          startTime: s.startTime,
+          endTime: s.endTime,
+          courseCode: s.courseCode,
+          courseName: s.courseName,
+          courseNameEn: s.courseNameEn,
+          lecturer: s.lecturer,
+          className: s.className,
+          semester: s.semester,
+          room: s.room,
+          credits: s.credits,
+          topic: s.topic,
+          upcomingTask: s.upcomingTask,
+          academicYear: s.academicYear,
+          color: s.color
+        })),
+        faculty: faculty.map(f => ({
+          id: f.id,
+          name: f.name,
+          title: f.title,
+          titleEn: f.titleEn,
+          nip: f.nip,
+          nidn: f.nidn,
+          role: f.role,
+          roleEn: f.roleEn,
+          room: f.room,
+          email: f.email,
+          phone: f.phone,
+          expertise: f.expertise,
+          expertiseEn: f.expertiseEn,
+          photo: f.photo,
+          bio: f.bio,
+          bioEn: f.bioEn
+        })),
+        announcements: announcements.slice(0, 10),
+        timestamp: Date.now()
+      };
+
+      const jsonString = JSON.stringify(payload);
+      const encoded = btoa(unescape(encodeURIComponent(jsonString)));
+      const base = originOverride || (typeof window !== 'undefined' ? window.location.origin + window.location.pathname : '');
+      // Use #sync= for unlimited URL length in modern browsers & smart TVs
+      return `${base}#sync=${encoded}`;
+    } catch (err) {
+      console.warn('generateTvSyncUrl error:', err);
+      return typeof window !== 'undefined' ? window.location.href : '';
+    }
+  };
+
+  // Full Signage Backup Export (.json)
+  const exportFullBackup = () => {
+    try {
+      const backupData = {
+        app: "POLIMDO Digital Signage",
+        version: "2.0",
+        exportedAt: new Date().toISOString(),
+        videos: videos.map(v => ({ ...v, url: v.rawUrl || v.url })),
+        schedules,
+        faculty,
+        announcements,
+        inventory,
+        labZones
+      };
+      const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `POLIMDO_Signage_Backup_${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.warn("Export backup error:", err);
+    }
+  };
+
+  // Full Signage Backup Import (.json)
+  const importFullBackup = (backupData) => {
+    try {
+      if (!backupData || typeof backupData !== 'object') return false;
+      if (Array.isArray(backupData.videos)) {
+        setVideos(backupData.videos);
+        try { localStorage.setItem('polimdo_cached_videos', JSON.stringify(backupData.videos)); } catch {}
+      }
+      if (Array.isArray(backupData.schedules)) {
+        setSchedules(backupData.schedules);
+        try { localStorage.setItem('polimdo_cached_schedules', JSON.stringify(backupData.schedules)); } catch {}
+      }
+      if (Array.isArray(backupData.faculty)) {
+        setFaculty(backupData.faculty);
+        try { localStorage.setItem('polimdo_cached_faculty', JSON.stringify(backupData.faculty)); } catch {}
+      }
+      if (Array.isArray(backupData.announcements)) {
+        setAnnouncements(backupData.announcements);
+        try { localStorage.setItem('polimdo_cached_announcements', JSON.stringify(backupData.announcements)); } catch {}
+      }
+      if (Array.isArray(backupData.inventory)) {
+        setInventory(backupData.inventory);
+        try { localStorage.setItem('polimdo_cached_inventory', JSON.stringify(backupData.inventory)); } catch {}
+      }
+      if (Array.isArray(backupData.labZones)) {
+        setLabZones(backupData.labZones);
+        try { localStorage.setItem('polimdo_cached_lab_zones', JSON.stringify(backupData.labZones)); } catch {}
+      }
+      return true;
+    } catch (err) {
+      console.warn("Import backup error:", err);
+      return false;
+    }
+  };
+
   return (
     <DataContext.Provider
       value={{
@@ -1976,7 +2161,10 @@ export function DataProvider({ children }) {
         deleteInventoryItem,
         submitBookingRequest,
         updateBookingStatus,
-        updateLabZone
+        updateLabZone,
+        generateTvSyncUrl,
+        exportFullBackup,
+        importFullBackup
       }}
     >
       {children}
@@ -1987,4 +2175,5 @@ export function DataProvider({ children }) {
 export function useData() {
   return useContext(DataContext);
 }
+
 

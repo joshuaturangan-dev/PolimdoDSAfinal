@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   X, 
   Lock, 
@@ -23,13 +23,26 @@ import {
   RefreshCw,
   LogOut,
   ShieldCheck,
-  Sparkles
+  Sparkles,
+  Share2,
+  Copy,
+  Tv,
+  QrCode,
+  Database,
+  FileJson,
+  Smartphone,
+  Check,
+  ExternalLink,
+  Globe,
+  Key
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { useData } from '../context/DataContext.jsx';
 import { parseExcelFile, downloadSampleExcel, exportSchedulesToExcel } from '../utils/excelHelper.js';
 import { generateVideoThumbnail, extractVideoDuration, parseDurationSeconds, extractYouTubeId, extractGoogleDrivePreview } from '../utils/videoStorage.js';
+import { setCustomSupabaseConfig } from '../lib/supabaseClient.js';
 
 export function AdminModal({ onClose }) {
   const { user, isAuthenticated, login, logout } = useAuth();
@@ -62,7 +75,10 @@ export function AdminModal({ onClose }) {
     updateInventoryItem,
     deleteInventoryItem,
     updateBookingStatus,
-    updateLabZone
+    updateLabZone,
+    generateTvSyncUrl,
+    exportFullBackup,
+    importFullBackup
   } = useData();
 
   // Login Form States
@@ -78,8 +94,8 @@ export function AdminModal({ onClose }) {
   const isDosen = user?.role === 'dosen';
 
   const allowedTabs = isAdmin 
-    ? ['announcements', 'videos', 'faculty', 'inventory', 'zones']
-    : ['schedules', 'inventory', 'zones'];
+    ? ['announcements', 'videos', 'faculty', 'inventory', 'zones', 'sync']
+    : ['schedules', 'inventory', 'zones', 'sync'];
 
   // CurrentTab is guaranteed to always be an allowed tab for the current role
   const currentTab = allowedTabs.includes(activeTab) ? activeTab : allowedTabs[0];
@@ -119,6 +135,16 @@ export function AdminModal({ onClose }) {
 
   // Inventory States
   const [invForm, setInvForm] = useState(null);
+
+  // Sync & Cloud Database States
+  const [copiedSyncLink, setCopiedSyncLink] = useState(false);
+  const [supabaseUrlInput, setSupabaseUrlInput] = useState(
+    typeof window !== 'undefined' ? localStorage.getItem('polimdo_custom_supabase_url') || '' : ''
+  );
+  const [supabaseKeyInput, setSupabaseKeyInput] = useState(
+    typeof window !== 'undefined' ? localStorage.getItem('polimdo_custom_supabase_key') || '' : ''
+  );
+  const fileBackupInputRef = useRef(null);
 
   // Notification Toast
   const [toastMsg, setToastMsg] = useState('');
@@ -560,6 +586,24 @@ export function AdminModal({ onClose }) {
                 <MapPin className="w-4 h-4 text-cyan-400" />
                 <span>• Status Meja & Zona Lab</span>
               </button>
+
+              {/* SINKRONISASI TV & MULTI-DEVICE (ALL ROLES) */}
+              <div className="pt-2 mt-auto border-t border-slate-800/80">
+                <button
+                  onClick={() => setActiveTab('sync')}
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold text-left transition-all ${
+                    currentTab === 'sync'
+                      ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-cyan-950/80 border border-cyan-400/50'
+                      : 'bg-slate-900/90 text-cyan-300 hover:bg-slate-800 hover:text-white border border-cyan-500/30'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Tv className="w-4 h-4 text-cyan-400" />
+                    <span>📺 Sinkron TV & HP</span>
+                  </div>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                </button>
+              </div>
             </div>
 
             {/* Main Tab Panel Content */}
@@ -584,7 +628,7 @@ export function AdminModal({ onClose }) {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <button
                           onClick={downloadSampleExcel}
                           className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-bold border border-slate-700 transition-all"
@@ -599,6 +643,15 @@ export function AdminModal({ onClose }) {
                         >
                           <Download className="w-3.5 h-3.5" />
                           <span>Ekspor Excel</span>
+                        </button>
+
+                        <button
+                          onClick={() => setActiveTab('sync')}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-950 hover:bg-cyan-900 text-cyan-300 text-xs font-bold border border-cyan-500/40 transition-all"
+                          title="Buka menu sinkronisasi TV & HP"
+                        >
+                          <Tv className="w-3.5 h-3.5 text-cyan-400" />
+                          <span>📺 Link TV & HP</span>
                         </button>
                       </div>
                     </div>
@@ -1147,35 +1200,46 @@ export function AdminModal({ onClose }) {
               {/* TAB 3: VIDEOS & PLAYLIST SCHEDULE (Admin) */}
               {currentTab === 'videos' && (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
                       Daftar Video & Jadwal Tayang ({videos.length})
                     </h4>
 
-                    <button
-                      onClick={() => {
-                        setVideoForm({
-                          title: '',
-                          titleEn: '',
-                          category: 'instructional',
-                          url: '',
-                          thumbnail: '',
-                          duration: '03:00',
-                          description: '',
-                          scheduleSlot: 'Rotasi Teratur',
-                          isActive: true,
-                          isNew: true
-                        });
-                        setVideoPreviewUrl('');
-                        setThumbPreviewUrl('');
-                        setVideoUploadInfo(null);
-                        setVideoInputTab('file');
-                      }}
-                      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white text-xs font-extrabold shadow-md shadow-cyan-950/40 transition-all"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Tambah Video Baru</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setActiveTab('sync')}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-950 hover:bg-cyan-900 text-cyan-300 text-xs font-bold border border-cyan-500/40 transition-all"
+                        title="Buka menu sinkronisasi TV & HP"
+                      >
+                        <Tv className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>📺 Link TV & HP</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setVideoForm({
+                            title: '',
+                            titleEn: '',
+                            category: 'instructional',
+                            url: '',
+                            thumbnail: '',
+                            duration: '03:00',
+                            description: '',
+                            scheduleSlot: 'Rotasi Teratur',
+                            isActive: true,
+                            isNew: true
+                          });
+                          setVideoPreviewUrl('');
+                          setThumbPreviewUrl('');
+                          setVideoUploadInfo(null);
+                          setVideoInputTab('file');
+                        }}
+                        className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white text-xs font-extrabold shadow-md shadow-cyan-950/40 transition-all"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Tambah Video Baru</span>
+                      </button>
+                    </div>
                   </div>
 
                   {videoForm && (
@@ -2135,6 +2199,276 @@ export function AdminModal({ onClose }) {
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 7: TV & MULTI-DEVICE SYNC */}
+              {currentTab === 'sync' && (
+                <div className="space-y-4">
+                  
+                  {/* Header Banner */}
+                  <div className="p-4 rounded-xl bg-gradient-to-r from-blue-950/90 via-slate-950 to-cyan-950/90 border border-cyan-500/50 shadow-xl space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Tv className="w-5 h-5 text-cyan-400 animate-pulse" />
+                      <h4 className="text-sm font-extrabold text-white">
+                        Sinkronisasi Tampilan Smart TV, HP & Laptop Lain
+                      </h4>
+                    </div>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      Fitur ini menjamin bahwa seluruh data terkini: <strong>Jadwal Kuliah Excel, Playlist Video, Foto Dosen (Base64), Informasi K3, dan Status Lab</strong> akan langsung terbaca dan tersimpan secara permanen saat dibuka di Smart TV, HP, atau Laptop lain.
+                    </p>
+                  </div>
+
+                  {/* 1. Quick Live Link & QR Code Box */}
+                  <div className="p-4 rounded-xl bg-slate-950/90 border border-slate-800 shadow-lg space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Share2 className="w-4 h-4 text-cyan-400" />
+                        <h5 className="text-xs font-black uppercase tracking-wider text-cyan-300">
+                          1. Link Sinkronisasi & QR Code Instan (TV & HP)
+                        </h5>
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-950 text-emerald-300 border border-emerald-500/40">
+                        ⚡ Siap Digunakan
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                      {/* QR Code Container */}
+                      <div className="flex flex-col items-center justify-center p-3 bg-slate-900 rounded-xl border border-cyan-500/30 text-center">
+                        <div className="p-2 bg-slate-950 rounded-lg border border-slate-700 shadow-inner">
+                          {typeof window !== 'undefined' && (
+                            <QRCodeSVG
+                              value={`${window.location.origin}${window.location.pathname}${generateTvSyncUrl()}`}
+                              size={150}
+                              bgColor="#020617"
+                              fgColor="#38BDF8"
+                              level="M"
+                              includeMargin={true}
+                            />
+                          )}
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-400 mt-2 flex items-center gap-1">
+                          <QrCode className="w-3 h-3 text-cyan-400" />
+                          Scan kamera HP / TV remote
+                        </span>
+                      </div>
+
+                      {/* Sync Link & Actions */}
+                      <div className="md:col-span-2 space-y-3">
+                        <div>
+                          <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                            Link Lengkap dengan Semua Data Terbaru:
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              readOnly
+                              value={typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}${generateTvSyncUrl()}` : ''}
+                              className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-cyan-300 select-all truncate"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (typeof window !== 'undefined') {
+                                  const url = `${window.location.origin}${window.location.pathname}${generateTvSyncUrl()}`;
+                                  navigator.clipboard.writeText(url);
+                                  setCopiedSyncLink(true);
+                                  showToast('Link TV & HP berhasil disalin ke clipboard!');
+                                  setTimeout(() => setCopiedSyncLink(false), 2500);
+                                }
+                              }}
+                              className={`px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+                                copiedSyncLink
+                                  ? 'bg-emerald-600 text-white'
+                                  : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-md shadow-cyan-900/40'
+                              }`}
+                            >
+                              {copiedSyncLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                              <span>{copiedSyncLink ? 'Tersalin!' : 'Salin Link'}</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                          <a
+                            href={typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}${generateTvSyncUrl()}` : '#'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 flex items-center gap-1.5 transition-all"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5 text-cyan-400" />
+                            <span>Buka di Tab Baru / Cek Tampilan</span>
+                          </a>
+
+                          <span className="text-[11px] text-slate-400">
+                            💡 Buka link ini di browser Smart TV Anda, maka semua data otomatis tersimpan di TV.
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 2. Full Backup & Restore Card */}
+                  <div className="p-4 rounded-xl bg-slate-950/90 border border-slate-800 shadow-lg space-y-3">
+                    <div className="flex items-center gap-2">
+                      <FileJson className="w-4 h-4 text-emerald-400" />
+                      <h5 className="text-xs font-black uppercase tracking-wider text-emerald-300">
+                        2. Cadangan File Lengkap (Ekspor & Impor JSON)
+                      </h5>
+                    </div>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      Unduh file cadangan data lab untuk disimpan atau dipindahkan ke komputer/laptop lain kapan saja. File ini mencakup jadwal Excel, video playlist, foto profil dosen, pengumuman, dan inventaris.
+                    </p>
+
+                    <div className="flex flex-wrap items-center gap-3 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          exportFullBackup();
+                          showToast('File backup lengkap (.json) berhasil diunduh!');
+                        }}
+                        className="px-3.5 py-2 rounded-xl bg-emerald-950 hover:bg-emerald-900 text-emerald-300 text-xs font-bold border border-emerald-500/40 flex items-center gap-2 transition-all shadow-md"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span>Unduh Backup Lengkap (.json)</span>
+                      </button>
+
+                      <input
+                        type="file"
+                        ref={fileBackupInputRef}
+                        accept=".json"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files && e.target.files[0];
+                          if (!file) return;
+                          try {
+                            const reader = new FileReader();
+                            reader.onload = async (event) => {
+                              try {
+                                const parsed = JSON.parse(event.target.result);
+                                const success = importFullBackup(parsed);
+                                if (success) {
+                                  showToast('Data berhasil dipulihkan dari file backup!');
+                                } else {
+                                  alert('Format file backup tidak valid.');
+                                }
+                              } catch (err) {
+                                alert('Gagal membaca file JSON: ' + err.message);
+                              }
+                            };
+                            reader.readAsText(file);
+                          } catch (err) {
+                            alert('Terjadi kesalahan impor file: ' + err.message);
+                          } finally {
+                            if (fileBackupInputRef.current) {
+                              fileBackupInputRef.current.value = '';
+                            }
+                          }
+                        }}
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => fileBackupInputRef.current?.click()}
+                        className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 flex items-center gap-2 transition-all shadow-md"
+                      >
+                        <Upload className="w-4 h-4 text-cyan-400" />
+                        <span>Pulihkan dari File Backup (.json)</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 3. Cloud Database Supabase (Opsional) */}
+                  <div className="p-4 rounded-xl bg-slate-950/90 border border-slate-800 shadow-lg space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Database className="w-4 h-4 text-purple-400" />
+                        <h5 className="text-xs font-black uppercase tracking-wider text-purple-300">
+                          3. Koneksi Cloud Database Supabase (Otomatis Multi-Device Tanpa Link Sync)
+                        </h5>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        supabaseUrlInput ? 'bg-purple-950 text-purple-300 border border-purple-500/40' : 'bg-slate-800 text-slate-400'
+                      }`}>
+                        {supabaseUrlInput ? 'Kustom Terpasang' : 'Mode Offline / Local'}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      Jika Anda memiliki akun Supabase gratis, masukkan URL & Anon Key di sini agar setiap perubahan jadwal atau video langsung tersimpan di Cloud dan otomatis muncul di semua Smart TV tanpa perlu menyalin link lagi.
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                          Supabase Project URL:
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="https://xyzcompany.supabase.co"
+                          value={supabaseUrlInput}
+                          onChange={(e) => setSupabaseUrlInput(e.target.value)}
+                          className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-white placeholder-slate-500 focus:border-purple-500 focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                          Supabase Anon Key:
+                        </label>
+                        <input
+                          type="password"
+                          placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                          value={supabaseKeyInput}
+                          onChange={(e) => setSupabaseKeyInput(e.target.value)}
+                          className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-white placeholder-slate-500 focus:border-purple-500 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!supabaseUrlInput.trim() || !supabaseKeyInput.trim()) {
+                            alert('Silakan masukkan Supabase Project URL dan Anon Key.');
+                            return;
+                          }
+                          setCustomSupabaseConfig(supabaseUrlInput, supabaseKeyInput);
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-md transition-all flex items-center gap-1.5"
+                      >
+                        <Key className="w-3.5 h-3.5" />
+                        <span>Simpan & Sambungkan Database</span>
+                      </button>
+
+                      {supabaseUrlInput && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm('Hapus konfigurasi Supabase kustom dan kembali ke mode bawaan?')) {
+                              setCustomSupabaseConfig('', '');
+                            }
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-all"
+                        >
+                          Reset ke Default
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 4. Practical Tips for TV Video Playback */}
+                  <div className="p-3.5 rounded-xl bg-blue-950/40 border border-blue-500/30 text-xs space-y-1.5 text-blue-200">
+                    <span className="font-extrabold flex items-center gap-1.5 text-blue-300">
+                      💡 Tips Pemutaran Video di Smart TV:
+                    </span>
+                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                      • Browser Smart TV memiliki keterbatasan kapasitas memori lokal. Sangat disarankan memasukkan <strong>Link YouTube (Unlisted)</strong> pada tab <em>Video Promosi & Info</em> agar video dapat berputar 24/7 lancar di semua tipe Smart TV, HP, dan Laptop.<br/>
+                      • Foto profil dosen yang diunggah otomatis diubah menjadi format ringkas (Base64 JPEG) dan akan terbawa otomatis saat membuka Link TV atau memulihkan Backup.
+                    </p>
                   </div>
                 </div>
               )}
