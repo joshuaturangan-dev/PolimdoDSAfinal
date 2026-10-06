@@ -2240,7 +2240,7 @@ export function AdminModal({ onClose }) {
                         <div className="p-2 bg-slate-950 rounded-lg border border-slate-700 shadow-inner">
                           {typeof window !== 'undefined' && (
                             <QRCodeSVG
-                              value={`${window.location.origin}${window.location.pathname}${generateTvSyncUrl()}`}
+                              value={generateTvSyncUrl()}
                               size={150}
                               bgColor="#020617"
                               fgColor="#38BDF8"
@@ -2265,14 +2265,14 @@ export function AdminModal({ onClose }) {
                             <input
                               type="text"
                               readOnly
-                              value={typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}${generateTvSyncUrl()}` : ''}
+                              value={typeof window !== 'undefined' ? generateTvSyncUrl() : ''}
                               className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-cyan-300 select-all truncate"
                             />
                             <button
                               type="button"
                               onClick={() => {
                                 if (typeof window !== 'undefined') {
-                                  const url = `${window.location.origin}${window.location.pathname}${generateTvSyncUrl()}`;
+                                  const url = generateTvSyncUrl();
                                   navigator.clipboard.writeText(url);
                                   setCopiedSyncLink(true);
                                   showToast('Link TV & HP berhasil disalin ke clipboard!');
@@ -2293,7 +2293,7 @@ export function AdminModal({ onClose }) {
 
                         <div className="flex flex-wrap items-center gap-2 pt-1">
                           <a
-                            href={typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}${generateTvSyncUrl()}` : '#'}
+                            href={typeof window !== 'undefined' ? generateTvSyncUrl() : '#'}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 flex items-center gap-1.5 transition-all"
