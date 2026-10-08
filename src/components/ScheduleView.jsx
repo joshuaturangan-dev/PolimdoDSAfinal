@@ -52,9 +52,29 @@ export function ScheduleView({ isExpanded = false, onToggleExpand }) {
   const todayNameId = dayNamesId[todayIndex];
   const todayNameEn = dayNamesEn[todayIndex];
 
-  // View Mode & Filters
-  const [viewMode, setViewMode] = useState('today');
-  const [selectedDay, setSelectedDay] = useState(todayNameId === 'Minggu' || todayNameId === 'Sabtu' ? 'Senin' : todayNameId);
+  // Compute schedules count per day
+  const dayScheduleCounts = React.useMemo(() => {
+    const counts = { 'Senin': 0, 'Selasa': 0, 'Rabu': 0, 'Kamis': 0, 'Jumat': 0 };
+    scheduleList.forEach(s => {
+      const d = String(s.day || '').trim();
+      if (counts[d] !== undefined) counts[d] += 1;
+    });
+    return counts;
+  }, [scheduleList]);
+
+  const activeTodayDay = todayNameId === 'Minggu' || todayNameId === 'Sabtu' ? 'Senin' : todayNameId;
+  const hasTodaySchedules = (dayScheduleCounts[activeTodayDay] || 0) > 0;
+
+  // View Mode & Filters (Smart fallback: if today has 0 schedules, show weekly view or active day)
+  const [viewMode, setViewMode] = useState(() => {
+    return hasTodaySchedules ? 'today' : 'all';
+  });
+  const [selectedDay, setSelectedDay] = useState(() => {
+    if (hasTodaySchedules) return activeTodayDay;
+    // Find first day that has schedules
+    const dayWithClasses = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'].find(d => (dayScheduleCounts[d] || 0) > 0);
+    return dayWithClasses || 'Semua';
+  });
   const [selectedSemester, setSelectedSemester] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isReadingSchedule, setIsReadingSchedule] = useState(false);
@@ -98,7 +118,7 @@ export function ScheduleView({ isExpanded = false, onToggleExpand }) {
   const currentMinutes = currentDate.getHours() * 60 + currentDate.getMinutes();
 
   // Today's schedules
-  const todaySchedules = scheduleList.filter(s => s.day === (todayNameId === 'Minggu' || todayNameId === 'Sabtu' ? 'Senin' : todayNameId));
+  const todaySchedules = scheduleList.filter(s => s.day === activeTodayDay);
 
   // Ongoing active class
   const currentOngoing = todaySchedules.find(s => {
@@ -133,8 +153,7 @@ export function ScheduleView({ isExpanded = false, onToggleExpand }) {
   // Filtered schedules for listing
   const filteredSchedules = scheduleList.filter((s) => {
     if (viewMode === 'today') {
-      const activeDayCheck = todayNameId === 'Minggu' || todayNameId === 'Sabtu' ? 'Senin' : todayNameId;
-      if (s.day !== activeDayCheck) return false;
+      if (s.day !== activeTodayDay) return false;
     } else {
       if (selectedDay !== 'Semua' && s.day !== selectedDay) return false;
     }
@@ -419,11 +438,12 @@ export function ScheduleView({ isExpanded = false, onToggleExpand }) {
             {days.map((d) => {
               const isTodayDay = d.id === todayNameId;
               const isSelected = selectedDay === d.id;
+              const dayCount = d.id === 'Semua' ? scheduleList.length : (dayScheduleCounts[d.id] || 0);
               return (
                 <button
                   key={d.id}
                   onClick={() => setSelectedDay(d.id)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all whitespace-nowrap flex items-center gap-1 ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all whitespace-nowrap flex items-center gap-1.5 ${
                     isSelected
                       ? 'bg-cyan-500 text-slate-950 shadow-md font-black'
                       : 'bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-800'
@@ -431,6 +451,9 @@ export function ScheduleView({ isExpanded = false, onToggleExpand }) {
                 >
                   {isTodayDay && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>}
                   <span>{lang === 'id' ? d.name : d.nameEn}</span>
+                  <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-slate-950 text-cyan-300' : 'bg-slate-800 text-slate-400'}`}>
+                    {dayCount}
+                  </span>
                 </button>
               );
             })}
@@ -636,9 +659,54 @@ export function ScheduleView({ isExpanded = false, onToggleExpand }) {
             );
           })
         ) : (
-          <div className="col-span-full flex flex-col items-center justify-center p-12 text-center text-slate-400">
-            <Calendar className="w-12 h-12 text-slate-600 mb-2" />
-            <p className="text-sm font-semibold">{t('noClassToday')}</p>
+          <div className="col-span-full flex flex-col items-center justify-center p-8 text-center text-slate-300 bg-slate-950/60 rounded-2xl border border-slate-800 space-y-3">
+            <Calendar className="w-10 h-10 text-cyan-400/70 animate-bounce mx-auto" />
+            <div className="space-y-1">
+              <p className="text-sm font-bold text-white">
+                {viewMode === 'today' 
+                  ? `Tidak ada jadwal praktikum untuk hari ${todayNameId}`
+                  : `Tidak ada jadwal untuk filter (${selectedDay}${selectedSemester !== 'all' ? ` • Sem ${selectedSemester}` : ''})`}
+              </p>
+              <p className="text-xs text-slate-400">
+                Tersimpan {scheduleList.length} total sesi praktikum di dalam sistem.
+              </p>
+            </div>
+
+            {/* Quick Navigation to days with classes */}
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+              <button
+                onClick={() => {
+                  setViewMode('all');
+                  setSelectedDay('Semua');
+                  setSelectedSemester('all');
+                  setSearchQuery('');
+                }}
+                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-extrabold text-xs shadow-lg shadow-cyan-950 transition-all flex items-center gap-1.5"
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Lihat Semua Jadwal ({scheduleList.length})</span>
+              </button>
+
+              {['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'].map(dayName => {
+                const count = dayScheduleCounts[dayName] || 0;
+                if (count === 0) return null;
+                return (
+                  <button
+                    key={dayName}
+                    onClick={() => {
+                      setViewMode('all');
+                      setSelectedDay(dayName);
+                      setSelectedSemester('all');
+                      setSearchQuery('');
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-cyan-300 font-bold text-xs border border-cyan-500/30 transition-all flex items-center gap-1.5"
+                  >
+                    <span>{dayName}</span>
+                    <span className="px-1.5 py-0.2 bg-cyan-950 text-cyan-300 rounded-full text-[10px] font-mono border border-cyan-500/30">{count}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>

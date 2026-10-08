@@ -1000,25 +1000,30 @@ export function DataProvider({ children }) {
         }
       }
 
-      // 2. Fallback to REST API
+      // 2. Fallback to REST API (only update local state if user has not customized data or if local cache is empty)
       const endpoints = ["schedules", "faculty", "videos", "announcements", "inventory", "inventory/bookings", "lab-zones"];
       const results = await Promise.allSettled(
         endpoints.map(ep => fetch(getApiUrl(`/api/${ep}`)).then(r => r.ok ? r.json() : null))
       );
 
-      if (results[0].status === "fulfilled" && results[0].value?.success && results[0].value.data?.length > 0) {
+      const hasCustomSchedules = typeof window !== 'undefined' && localStorage.getItem('polimdo_user_has_custom_schedules') === 'true';
+      const hasCustomFaculty = typeof window !== 'undefined' && localStorage.getItem('polimdo_user_has_custom_faculty') === 'true';
+      const hasCustomVideos = typeof window !== 'undefined' && localStorage.getItem('polimdo_user_has_custom_videos') === 'true';
+      const hasCustomAnnouncements = typeof window !== 'undefined' && localStorage.getItem('polimdo_user_has_custom_announcements') === 'true';
+
+      if (!hasCustomSchedules && results[0].status === "fulfilled" && results[0].value?.success && results[0].value.data?.length > 0) {
         setSchedules(results[0].value.data);
         try { localStorage.setItem('polimdo_cached_schedules', JSON.stringify(results[0].value.data)); } catch {}
       }
-      if (results[1].status === "fulfilled" && results[1].value?.success && results[1].value.data?.length > 0) {
+      if (!hasCustomFaculty && results[1].status === "fulfilled" && results[1].value?.success && results[1].value.data?.length > 0) {
         setFaculty(results[1].value.data);
         try { localStorage.setItem('polimdo_cached_faculty', JSON.stringify(results[1].value.data)); } catch {}
       }
-      if (results[2].status === "fulfilled" && results[2].value?.success && results[2].value.data?.length > 0) {
+      if (!hasCustomVideos && results[2].status === "fulfilled" && results[2].value?.success && results[2].value.data?.length > 0) {
         setVideos(results[2].value.data);
         try { localStorage.setItem('polimdo_cached_videos', JSON.stringify(results[2].value.data)); } catch {}
       }
-      if (results[3].status === "fulfilled" && results[3].value?.success && results[3].value.data?.length > 0) {
+      if (!hasCustomAnnouncements && results[3].status === "fulfilled" && results[3].value?.success && results[3].value.data?.length > 0) {
         setAnnouncements(results[3].value.data);
         try { localStorage.setItem('polimdo_cached_announcements', JSON.stringify(results[3].value.data)); } catch {}
       }
@@ -1084,6 +1089,7 @@ export function DataProvider({ children }) {
       const nextList = [...prev, newObj];
       try {
         localStorage.setItem('polimdo_cached_schedules', JSON.stringify(nextList));
+        localStorage.setItem('polimdo_user_has_custom_schedules', 'true');
       } catch {}
       return nextList;
     });
@@ -1128,6 +1134,7 @@ export function DataProvider({ children }) {
       const nextList = prev.map(s => s.id === id ? { ...s, ...scheduleData } : s);
       try {
         localStorage.setItem('polimdo_cached_schedules', JSON.stringify(nextList));
+        localStorage.setItem('polimdo_user_has_custom_schedules', 'true');
       } catch {}
       return nextList;
     });
@@ -1171,6 +1178,7 @@ export function DataProvider({ children }) {
       const nextList = prev.filter(s => s.id !== id);
       try {
         localStorage.setItem('polimdo_cached_schedules', JSON.stringify(nextList));
+        localStorage.setItem('polimdo_user_has_custom_schedules', 'true');
       } catch {}
       return nextList;
     });
@@ -1231,6 +1239,7 @@ export function DataProvider({ children }) {
       }
       try {
         localStorage.setItem('polimdo_cached_schedules', JSON.stringify(nextList));
+        localStorage.setItem('polimdo_user_has_custom_schedules', 'true');
       } catch (e) {
         console.warn("LocalStorage save error:", e);
       }
