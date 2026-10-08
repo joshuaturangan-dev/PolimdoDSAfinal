@@ -1,8 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 
+const OFFICIAL_SUPABASE_URL = "https://wfrofqrctxveenpqlino.supabase.co";
+const OFFICIAL_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indmcm9mcXJjdHh2ZWVucHFsaW5vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0Mjg1NzksImV4cCI6MjEwNzAwNDU3OX0.OjFCNaBY0L6bWk7W5kitCowGe6tT1kB-zvu_Df-ztI8";
+
 const getSupabaseConfig = () => {
-  let url = import.meta.env.VITE_SUPABASE_URL || "";
-  let key = import.meta.env.VITE_SUPABASE_KEY || "";
+  let url = import.meta.env.VITE_SUPABASE_URL || OFFICIAL_SUPABASE_URL;
+  let key = import.meta.env.VITE_SUPABASE_KEY || OFFICIAL_SUPABASE_KEY;
 
   if (typeof window !== "undefined") {
     const customUrl = localStorage.getItem("polimdo_custom_supabase_url");
