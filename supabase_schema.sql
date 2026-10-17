@@ -169,3 +169,57 @@ CREATE POLICY "Public Insert/Update on bookings" ON public.bookings FOR ALL USIN
 
 CREATE POLICY "Public Read Access on lab_zones" ON public.lab_zones FOR SELECT USING (true);
 CREATE POLICY "Public Insert/Update on lab_zones" ON public.lab_zones FOR ALL USING (true);
+
+-- Kolom kompatibilitas tabel videos
+ALTER TABLE public.videos ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.videos ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.videos ADD COLUMN IF NOT EXISTS schedule_slot TEXT DEFAULT 'Rotasi Teratur';
+
+-- ==============================================================================
+-- 8. STORAGE BUCKET: VIDEOS (Untuk File Video MP4 Multi-Device di TV, HP, Laptop)
+-- ==============================================================================
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+    'videos',
+    'videos',
+    true,
+    52428800, -- 50MB (Batas maksimal Free Tier Supabase)
+    ARRAY['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime']
+)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+-- Policy agar file video bisa dibaca dan diupload oleh browser/TV
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE tablename = 'objects' AND schemaname = 'storage' AND policyname = 'Public Read Video Objects'
+    ) THEN
+        CREATE POLICY "Public Read Video Objects" ON storage.objects
+            FOR SELECT USING (bucket_id = 'videos');
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE tablename = 'objects' AND schemaname = 'storage' AND policyname = 'Public Upload Video Objects'
+    ) THEN
+        CREATE POLICY "Public Upload Video Objects" ON storage.objects
+            FOR INSERT WITH CHECK (bucket_id = 'videos');
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE tablename = 'objects' AND schemaname = 'storage' AND policyname = 'Public Update Video Objects'
+    ) THEN
+        CREATE POLICY "Public Update Video Objects" ON storage.objects
+            FOR UPDATE USING (bucket_id = 'videos');
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE tablename = 'objects' AND schemaname = 'storage' AND policyname = 'Public Delete Video Objects'
+    ) THEN
+        CREATE POLICY "Public Delete Video Objects" ON storage.objects
+            FOR DELETE USING (bucket_id = 'videos');
+    END IF;
+END $$;

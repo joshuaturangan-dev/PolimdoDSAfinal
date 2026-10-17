@@ -1528,7 +1528,7 @@ export function DataProvider({ children }) {
     // 3. Upsert to Supabase Cloud
     if (supabase) {
       try {
-        const { error } = await supabase.from("videos").upsert({
+        let { error } = await supabase.from("videos").upsert({
           id: newId,
           title: newObj.title,
           title_en: newObj.titleEn || newObj.title,
@@ -1541,10 +1541,35 @@ export function DataProvider({ children }) {
           description: newObj.description || '',
           description_en: newObj.descriptionEn || '',
           featured: newObj.featured || false,
-          active: newObj.active !== false,
+          is_active: newObj.active !== false,
           loop: newObj.loop !== false,
-          order: newObj.order || 1
+          order: newObj.order || 1,
+          schedule_slot: newObj.scheduleSlot || 'Rotasi Teratur'
         });
+
+        // Fallback for older schemas with column 'active' instead of 'is_active'
+        if (error && error.message && error.message.includes("is_active")) {
+          const fallbackRes = await supabase.from("videos").upsert({
+            id: newId,
+            title: newObj.title,
+            title_en: newObj.titleEn || newObj.title,
+            category: newObj.category || 'instructional',
+            category_en: newObj.categoryEn || 'Instructional & Practicum',
+            duration: newObj.duration || '03:00',
+            duration_sec: finalDurationSec,
+            url: persistentUrl,
+            thumbnail: newObj.thumbnail,
+            description: newObj.description || '',
+            description_en: newObj.descriptionEn || '',
+            featured: newObj.featured || false,
+            active: newObj.active !== false,
+            loop: newObj.loop !== false,
+            order: newObj.order || 1,
+            schedule_slot: newObj.scheduleSlot || 'Rotasi Teratur'
+          });
+          error = fallbackRes.error;
+        }
+
         if (error) {
           console.warn("Supabase video insert notice:", error);
         }
@@ -1611,7 +1636,7 @@ export function DataProvider({ children }) {
     // 3. Upsert to Supabase
     if (supabase) {
       try {
-        const { error } = await supabase.from("videos").upsert({
+        let { error } = await supabase.from("videos").upsert({
           id: id,
           title: updatedObj.title,
           title_en: updatedObj.titleEn || updatedObj.title,
@@ -1624,10 +1649,35 @@ export function DataProvider({ children }) {
           description: updatedObj.description || '',
           description_en: updatedObj.descriptionEn || '',
           featured: updatedObj.featured || false,
-          active: updatedObj.active !== false,
+          is_active: updatedObj.active !== false,
           loop: updatedObj.loop !== false,
-          order: updatedObj.order || 1
+          order: updatedObj.order || 1,
+          schedule_slot: updatedObj.scheduleSlot || 'Rotasi Teratur'
         });
+
+        // Fallback for older schemas with column 'active' instead of 'is_active'
+        if (error && error.message && error.message.includes("is_active")) {
+          const fallbackRes = await supabase.from("videos").upsert({
+            id: id,
+            title: updatedObj.title,
+            title_en: updatedObj.titleEn || updatedObj.title,
+            category: updatedObj.category || 'instructional',
+            category_en: updatedObj.categoryEn || 'Instructional & Practicum',
+            duration: updatedObj.duration || '03:00',
+            duration_sec: finalDurationSec,
+            url: persistentUrl,
+            thumbnail: updatedObj.thumbnail,
+            description: updatedObj.description || '',
+            description_en: updatedObj.descriptionEn || '',
+            featured: updatedObj.featured || false,
+            active: updatedObj.active !== false,
+            loop: updatedObj.loop !== false,
+            order: updatedObj.order || 1,
+            schedule_slot: updatedObj.scheduleSlot || 'Rotasi Teratur'
+          });
+          error = fallbackRes.error;
+        }
+
         if (error) {
           console.warn("Supabase video update notice:", error);
         }

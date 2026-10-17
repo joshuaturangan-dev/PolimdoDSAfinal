@@ -128,7 +128,7 @@ export function AdminModal({ onClose }) {
   const [videoPreviewUrl, setVideoPreviewUrl] = useState('');
   const [uploadingThumb, setUploadingThumb] = useState(false);
   const [thumbPreviewUrl, setThumbPreviewUrl] = useState('');
-  const [videoInputTab, setVideoInputTab] = useState('file'); // 'file' (IndexedDB persistent) or 'url' (YouTube / direct link)
+  const [videoInputTab, setVideoInputTab] = useState('url'); // 'url' (YouTube / multi-device) or 'file' (IndexedDB/Cloud)
 
   // Announcement States
   const [annForm, setAnnForm] = useState(null);
@@ -275,7 +275,7 @@ export function AdminModal({ onClose }) {
         setThumbPreviewUrl(autoThumbBase64);
       }
 
-      // 3. Save to permanent browser IndexedDB storage
+      // 3. Save to permanent browser IndexedDB storage and attempt Supabase Storage upload
       const res = await uploadVideoFile(file);
       
       const cleanTitle = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
@@ -289,7 +289,7 @@ export function AdminModal({ onClose }) {
         categoryEn: prev?.categoryEn || 'Instructional & Practicum',
         duration: durationInfo.duration || '03:00',
         durationSec: durationInfo.durationSec || 180,
-        url: res.url, // 'indexeddb://vid_xxx'
+        url: res.url, // Supabase public URL or 'indexeddb://vid_xxx'
         localBlobUrl: localUrl,
         fileBlob: file,
         thumbnail: prev?.thumbnail || autoThumbBase64 || "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80",
@@ -298,10 +298,15 @@ export function AdminModal({ onClose }) {
         scheduleSlot: prev?.scheduleSlot || 'Rotasi Teratur',
         active: true,
         featured: false,
-        isNew: prev?.isNew !== false
+        isNew: prev?.isNew !== false,
+        isCloudUrl: Boolean(res.isCloudUrl)
       }));
 
-      showToast(`Video "${file.name}" (${fileSizeMB} MB) berhasil disimpan permanen!`);
+      if (res.isCloudUrl) {
+        showToast(`Video "${file.name}" berhasil diunggah ke Cloud Storage (Bisa tayang di TV & Semua Device)!`);
+      } else {
+        showToast(`Video "${file.name}" (${fileSizeMB} MB) disimpan di browser lokal laptop ini.`);
+      }
     } catch (err) {
       console.error('Error processing video upload:', err);
       alert('Gagal memproses file video: ' + err.message);
@@ -1232,7 +1237,7 @@ export function AdminModal({ onClose }) {
                           setVideoPreviewUrl('');
                           setThumbPreviewUrl('');
                           setVideoUploadInfo(null);
-                          setVideoInputTab('file');
+                          setVideoInputTab('url');
                         }}
                         className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white text-xs font-extrabold shadow-md shadow-cyan-950/40 transition-all"
                       >
@@ -1274,7 +1279,7 @@ export function AdminModal({ onClose }) {
                               : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
                           }`}
                         >
-                          <span>🌟 Link YouTube / Cloud (Bisa Diputar di SEMUA Device & Smart TV)</span>
+                          <span>🌟 Link YouTube / Cloud (Rekomendasi Utama - Multi-Device TV, HP, Laptop)</span>
                         </button>
 
                         <button
@@ -1287,21 +1292,24 @@ export function AdminModal({ onClose }) {
                           }`}
                         >
                           <Upload className="w-3.5 h-3.5" />
-                          <span>📁 Upload File Video dari Komputer (Khusus Layar Ini)</span>
+                          <span>📁 Upload File MP4 dari Laptop (Batas 50MB Supabase / Lokal)</span>
                         </button>
                       </div>
 
                       {/* File Upload Mode */}
                       {videoInputTab === 'file' ? (
                         <div className="space-y-3">
-                          <div className="p-2.5 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-[11px] leading-relaxed flex items-start gap-2">
-                            <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                            <div>
-                              <strong>Penyimpanan Lokal Aktif:</strong> File video tersimpan permanen di penyimpanan peramban (IndexedDB) perangkat ini. Video <strong>tidak akan hilang</strong> saat website ditutup atau di-refresh di laptop/PC ini.
-                              <span className="block text-slate-300 mt-1">
-                                💡 <em>Tips Multi-Device:</em> Jika Anda ingin video otomatis tayang di <strong>Smart TV, HP, atau Komputer lain</strong> tanpa harus upload file ulang ke masing-masing device, gunakan tab <strong>"Link YouTube / Cloud"</strong>.
-                              </span>
+                          <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-200 text-[11px] leading-relaxed space-y-1.5">
+                            <div className="flex items-center gap-2 font-bold text-amber-300">
+                              <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
+                              <span>Catatan Penggunaan File Video:</span>
                             </div>
+                            <p className="text-slate-300">
+                              Jika Anda mengunggah file MP4 langsung dari laptop ini, file akan dicoba diupload ke <strong>Supabase Storage (Bucket &quot;videos&quot;)</strong>. Jika Bucket Supabase belum dibuat, video otomatis hanya tersimpan di browser laptop ini (sehingga tidak muncul saat dibuka di Smart TV atau HP).
+                            </p>
+                            <p className="text-cyan-300 font-semibold">
+                              💡 <strong>Solusi Terbaik & Paling Mudah:</strong> Buka tab <strong>&quot;Link YouTube / Cloud&quot;</strong> di atas, upload video ke YouTube (bisa disetel <em>Unlisted/Tidak Publik</em>), lalu paste linknya. Dijamin 100% langsung tayang jernih di TV koridor, HP mahasiswa, dan semua laptop!
+                            </p>
                           </div>
 
                           <label className="block p-4 rounded-xl border-2 border-dashed border-cyan-500/50 bg-cyan-950/20 hover:bg-cyan-950/40 cursor-pointer text-center transition-all group">
@@ -1345,6 +1353,16 @@ export function AdminModal({ onClose }) {
                         </div>
                       ) : (
                         <div className="space-y-3">
+                          <div className="p-3 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-cyan-200 text-[11px] leading-relaxed flex items-start gap-2.5">
+                            <span className="text-base shrink-0">🌐</span>
+                            <div>
+                              <strong className="text-cyan-300">Sinkronisasi Multi-Device Penuh:</strong>
+                              <p className="text-slate-300 mt-0.5">
+                                Video dengan <strong>Link YouTube</strong> atau URL publik online akan <strong>otomatis tayang di semua perangkat</strong> (Smart TV di koridor lab, HP mahasiswa, dan laptop dosen) secara real-time tanpa batas kuota memori!
+                              </p>
+                            </div>
+                          </div>
+
                           <div>
                             <label className="text-slate-300 block mb-1 font-bold text-xs">
                               URL File Video (YouTube Link / Direct MP4 / Google Drive)
@@ -1672,9 +1690,20 @@ export function AdminModal({ onClose }) {
                               }}
                             />
                             <div>
-                              <span className="text-[10px] font-bold text-cyan-400 uppercase">
-                                {vid.categoryName} • {vid.duration || '03:00'}
-                              </span>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-[10px] font-bold text-cyan-400 uppercase">
+                                  {vid.categoryName} • {vid.duration || '03:00'}
+                                </span>
+                                {vid.url?.startsWith('http://') || vid.url?.startsWith('https://') ? (
+                                  <span className="px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-300 font-bold text-[9px] border border-emerald-500/40">
+                                    🌐 Multi-Device (TV, HP, Laptop)
+                                  </span>
+                                ) : (
+                                  <span className="px-1.5 py-0.2 rounded bg-amber-950 text-amber-300 font-bold text-[9px] border border-amber-500/40" title="Hanya tersimpan di browser laptop tempat video di-upload">
+                                    💻 Khusus Laptop Ini (Lokal)
+                                  </span>
+                                )}
+                              </div>
                               <h5 className="font-bold text-white line-clamp-1">{vid.title}</h5>
                               <p className="text-[10px] text-slate-400">{vid.scheduleSlot || 'Rotasi Teratur'}</p>
                             </div>

@@ -104,13 +104,19 @@ export function VideoPlayerPane({ layoutMode = 'split', onToggleVideoFull }) {
         if (isMounted) {
           if (blobUrl) {
             setResolvedVideoUrl(blobUrl);
+            setHasVideoError(false);
+          } else if (currentVideo.localBlobUrl) {
+            setResolvedVideoUrl(currentVideo.localBlobUrl);
+            setHasVideoError(false);
           } else {
-            setResolvedVideoUrl(currentVideo.localBlobUrl || '');
+            setResolvedVideoUrl('');
+            setHasVideoError(true);
           }
         }
       });
     } else {
       setResolvedVideoUrl(currentVideo.url);
+      setHasVideoError(false);
     }
 
     return () => {
