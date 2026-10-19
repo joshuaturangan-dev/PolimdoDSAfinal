@@ -1821,7 +1821,7 @@ export function AdminModal({ onClose }) {
                                     ? 'bg-red-500/20 text-red-400 border border-red-500/40'
                                     : 'bg-amber-500/20 text-amber-400 border border-amber-500/40 animate-pulse'
                                 }`}>
-                                  {bk.status.toUpperCase()}
+                                  {(bk.status || 'pending').toUpperCase()}
                                 </span>
                                 <span className="font-bold text-white">{bk.borrowerName} ({bk.nim})</span>
                                 <span className="text-cyan-400 font-semibold">{bk.className}</span>

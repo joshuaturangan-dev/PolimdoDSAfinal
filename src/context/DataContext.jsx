@@ -2096,13 +2096,13 @@ export function DataProvider({ children }) {
   };
 
   const updateBookingStatus = async (id, status, notes = "") => {
-    let affectedBooking = null;
+    let targetBooking = null;
 
     setBookings(prev => {
       const nextList = prev.map(b => {
         if (b.id === id) {
-          affectedBooking = { ...b, status, notes: notes || b.notes };
-          return affectedBooking;
+          targetBooking = { ...b, status, notes: notes !== undefined ? notes : b.notes };
+          return targetBooking;
         }
         return b;
       });
@@ -2112,12 +2112,19 @@ export function DataProvider({ children }) {
       return nextList;
     });
 
-    // Sync inventory stock changes when loan is approved or marked returned
-    if (affectedBooking && affectedBooking.itemId) {
-      const qty = Number(affectedBooking.quantity) || 1;
+    if (!targetBooking) {
+      targetBooking = bookings.find(b => b.id === id);
+      if (targetBooking) {
+        targetBooking = { ...targetBooking, status, notes: notes !== undefined ? notes : targetBooking.notes };
+      }
+    }
+
+    let updatedInventoryItem = null;
+    if (targetBooking && targetBooking.itemId) {
+      const qty = Number(targetBooking.quantity) || 1;
       setInventory(prev => {
         const nextInv = prev.map(item => {
-          if (item.id === affectedBooking.itemId) {
+          if (item.id === targetBooking.itemId) {
             const currentAvail = Number(item.availableQty ?? item.availableStock ?? 0);
             const currentBorrowed = Number(item.borrowedQty ?? 0);
             let newAvail = currentAvail;
@@ -2131,21 +2138,14 @@ export function DataProvider({ children }) {
               newBorrowed = Math.max(0, currentBorrowed - qty);
             }
 
-            const updatedItem = {
+            const updated = {
               ...item,
               availableQty: newAvail,
               availableStock: newAvail,
               borrowedQty: newBorrowed
             };
-
-            if (supabase) {
-              supabase.from("inventory").update({
-                available_qty: newAvail,
-                borrowed_qty: newBorrowed
-              }).eq("id", item.id).catch(e => console.warn("Supabase stock update error:", e));
-            }
-
-            return updatedItem;
+            updatedInventoryItem = { id: item.id, available_qty: newAvail, borrowed_qty: newBorrowed };
+            return updated;
           }
           return item;
         });
@@ -2158,6 +2158,17 @@ export function DataProvider({ children }) {
     }
 
     if (supabase) {
+      if (updatedInventoryItem) {
+        try {
+          await supabase.from("inventory").update({
+            available_qty: updatedInventoryItem.available_qty,
+            borrowed_qty: updatedInventoryItem.borrowed_qty
+          }).eq("id", updatedInventoryItem.id);
+        } catch (e) {
+          console.warn("Supabase inventory stock update error:", e);
+        }
+      }
+
       try {
         const { error } = await supabase.from("bookings").update({ status, notes }).eq("id", id);
         if (error) {
