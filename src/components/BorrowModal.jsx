@@ -22,10 +22,23 @@ export function BorrowModal({ item, onClose, onSuccess }) {
   const [errorMsg, setErrorMsg] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
 
+  const availableCount = item?.availableQty ?? item?.availableStock ?? 1;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.borrowerName || !formData.nim || !formData.purpose) {
-      setErrorMsg('Harap isi Nama, NIM, dan Keperluan Praktikum.');
+      setErrorMsg('Harap isi Nama Lengkap, NIM, dan Keperluan Praktikum.');
+      return;
+    }
+
+    const qty = Number(formData.quantity) || 1;
+    if (qty < 1) {
+      setErrorMsg('Jumlah peminjaman minimal 1 unit.');
+      return;
+    }
+
+    if (availableCount > 0 && qty > availableCount) {
+      setErrorMsg(`Jumlah peminjaman (${qty}) melebihi stok yang tersedia (${availableCount} ${item.unit || 'Unit'}).`);
       return;
     }
 
@@ -35,19 +48,21 @@ export function BorrowModal({ item, onClose, onSuccess }) {
     try {
       const payload = {
         itemId: item.id,
+        itemName: item.name || '',
+        itemCode: item.code || '',
         ...formData,
-        quantity: Number(formData.quantity)
+        quantity: qty
       };
 
       const res = await submitBookingRequest(payload);
-      if (res.success) {
+      if (res && res.success) {
         setIsSuccess(true);
         setTimeout(() => {
           if (onSuccess) onSuccess();
           onClose();
-        }, 2000);
+        }, 1800);
       } else {
-        setErrorMsg(res.message || 'Gagal mengajukan peminjaman.');
+        setErrorMsg(res?.message || 'Gagal mengajukan peminjaman.');
       }
     } catch (err) {
       setErrorMsg(err.message || 'Terjadi kesalahan sistem.');
@@ -86,8 +101,8 @@ export function BorrowModal({ item, onClose, onSuccess }) {
         {/* Item Summary Pill */}
         <div className="p-2.5 mb-4 rounded-xl bg-slate-950/70 border border-slate-800 flex items-center justify-between text-xs">
           <span className="text-slate-400">Tersedia di Lab:</span>
-          <span className="font-extrabold text-emerald-400">
-            {item.availableStock} {item.unit}
+          <span className="font-extrabold text-emerald-400 font-mono">
+            {availableCount} {item.unit || 'Unit'}
           </span>
         </div>
 
@@ -166,12 +181,12 @@ export function BorrowModal({ item, onClose, onSuccess }) {
 
               <div>
                 <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                  {t('borrowQuantity')} (Maks: {item.availableStock})
+                  {t('borrowQuantity') || 'Jumlah Alat'} (Maks: {availableCount})
                 </label>
                 <input
                   type="number"
                   min="1"
-                  max={item.availableStock || 1}
+                  max={availableCount > 0 ? availableCount : 1}
                   value={formData.quantity}
                   onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
                   className="w-full px-3 py-1.5 bg-slate-950 text-xs rounded-lg border border-slate-700 text-slate-200 focus:outline-none focus:border-cyan-400 font-mono"
@@ -230,11 +245,11 @@ export function BorrowModal({ item, onClose, onSuccess }) {
 
               <button
                 type="submit"
-                disabled={isSubmitting || item.availableStock <= 0}
+                disabled={isSubmitting || availableCount <= 0}
                 className="flex items-center gap-1.5 px-5 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white text-xs font-extrabold shadow-lg shadow-cyan-950/50 transition-all disabled:opacity-50"
               >
                 <Send className="w-3.5 h-3.5" />
-                <span>{isSubmitting ? 'Mengirim...' : t('submitBooking')}</span>
+                <span>{isSubmitting ? 'Mengirim...' : (t('submitBooking') || 'Ajukan Peminjaman')}</span>
               </button>
             </div>
 

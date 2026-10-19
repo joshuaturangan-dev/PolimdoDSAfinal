@@ -992,9 +992,24 @@ export function DataProvider({ children }) {
           }
 
           if (bkData) {
-            setBookings(bkData);
+            const mappedBookings = bkData.map(b => ({
+              id: b.id,
+              itemId: b.item_id || b.itemId,
+              itemName: b.item_name || b.itemName || 'Alat Laboratorium',
+              borrowerName: b.borrower_name || b.borrowerName || 'Mahasiswa',
+              nim: b.nim || b.borrower_id || b.borrowerId || '-',
+              className: b.class_name || b.borrower_class || b.className || 'D4-TL-3A',
+              quantity: Number(b.quantity) || 1,
+              borrowDate: b.borrow_date || b.start_date || b.borrowDate || '',
+              returnDate: b.return_date || b.expected_return_date || b.end_date || b.returnDate || '',
+              purpose: b.purpose || '',
+              status: b.status || 'pending',
+              notes: b.notes || '',
+              createdAt: b.created_at || b.createdAt || new Date().toISOString()
+            }));
+            setBookings(mappedBookings);
             try {
-              localStorage.setItem('polimdo_cached_bookings', JSON.stringify(bkData));
+              localStorage.setItem('polimdo_cached_bookings', JSON.stringify(mappedBookings));
             } catch {}
           }
 
@@ -1060,8 +1075,24 @@ export function DataProvider({ children }) {
         try { localStorage.setItem('polimdo_cached_inventory', JSON.stringify(results[4].value.data)); } catch {}
       }
       if (results[5].status === "fulfilled" && results[5].value?.success && results[5].value.data) {
-        setBookings(results[5].value.data);
-        try { localStorage.setItem('polimdo_cached_bookings', JSON.stringify(results[5].value.data)); } catch {}
+        const rawBk = results[5].value.data;
+        const mappedBk = Array.isArray(rawBk) ? rawBk.map(b => ({
+          id: b.id,
+          itemId: b.item_id || b.itemId,
+          itemName: b.item_name || b.itemName || 'Alat Laboratorium',
+          borrowerName: b.borrower_name || b.borrowerName || 'Mahasiswa',
+          nim: b.nim || b.borrower_id || b.borrowerId || '-',
+          className: b.class_name || b.borrower_class || b.className || 'D4-TL-3A',
+          quantity: Number(b.quantity) || 1,
+          borrowDate: b.borrow_date || b.start_date || b.borrowDate || '',
+          returnDate: b.return_date || b.expected_return_date || b.end_date || b.returnDate || '',
+          purpose: b.purpose || '',
+          status: b.status || 'pending',
+          notes: b.notes || '',
+          createdAt: b.created_at || b.createdAt || new Date().toISOString()
+        })) : [];
+        setBookings(mappedBk);
+        try { localStorage.setItem('polimdo_cached_bookings', JSON.stringify(mappedBk)); } catch {}
       }
       if (results[6].status === "fulfilled" && results[6].value?.success && results[6].value.data?.length) {
         const mappedZones = DEFAULT_LAB_ZONES.map(defaultZone => {
@@ -1991,7 +2022,12 @@ export function DataProvider({ children }) {
 
   const submitBookingRequest = async (bookingData) => {
     const newId = bookingData.id || `bk_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
-    const newObj = { ...bookingData, id: newId, status: "pending", createdAt: new Date().toISOString() };
+    const newObj = {
+      ...bookingData,
+      id: newId,
+      status: "pending",
+      createdAt: new Date().toISOString()
+    };
     setBookings(prev => {
       const nextList = [newObj, ...prev];
       try {
@@ -2002,22 +2038,50 @@ export function DataProvider({ children }) {
 
     if (supabase) {
       try {
-        await supabase.from("bookings").insert({
+        // Attempt full insert with newer schema columns
+        const { error } = await supabase.from("bookings").insert({
           id: newId,
           item_id: newObj.itemId,
           item_name: newObj.itemName,
           borrower_name: newObj.borrowerName,
-          borrower_id: newObj.borrowerId || newObj.nim,
-          borrower_role: newObj.borrowerRole || "Mahasiswa",
-          borrower_class: newObj.borrowerClass || newObj.className,
-          borrow_date: newObj.borrowDate,
-          expected_return_date: newObj.expectedReturnDate || newObj.returnDate,
-          quantity: Number(newObj.quantity) || 1,
+          nim: newObj.nim || newObj.borrowerId || '',
+          start_date: newObj.borrowDate,
+          end_date: newObj.returnDate || newObj.expectedReturnDate,
           purpose: newObj.purpose,
           status: "pending",
-          notes: newObj.notes || ""
+          borrower_id: newObj.borrowerId || newObj.nim || '',
+          borrower_role: newObj.borrowerRole || "Mahasiswa",
+          borrower_class: newObj.className || newObj.borrowerClass || '',
+          class_name: newObj.className || newObj.borrowerClass || '',
+          borrow_date: newObj.borrowDate,
+          expected_return_date: newObj.returnDate || newObj.expectedReturnDate,
+          return_date: newObj.returnDate || newObj.expectedReturnDate,
+          quantity: Number(newObj.quantity) || 1,
+          notes: newObj.notes || ''
         });
-      } catch (e) { console.warn("Supabase booking insert notice:", e); }
+
+        // Fallback for baseline Supabase schema (if extra columns are missing)
+        if (error) {
+          console.warn("Supabase booking insert full attempt notice, falling back to base columns:", error.message);
+          const fallbackPurpose = `${newObj.purpose || ''} [Jumlah: ${Number(newObj.quantity) || 1} unit | Kelas: ${newObj.className || newObj.borrowerClass || '-'}]`;
+          const { error: fallbackError } = await supabase.from("bookings").insert({
+            id: newId,
+            item_id: newObj.itemId,
+            item_name: newObj.itemName,
+            borrower_name: newObj.borrowerName,
+            nim: newObj.nim || newObj.borrowerId || '',
+            start_date: newObj.borrowDate,
+            end_date: newObj.returnDate || newObj.expectedReturnDate,
+            purpose: fallbackPurpose,
+            status: "pending"
+          });
+          if (fallbackError) {
+            console.error("Supabase booking insert fallback notice:", fallbackError.message);
+          }
+        }
+      } catch (e) {
+        console.warn("Supabase booking insert notice:", e);
+      }
     }
 
     try {
@@ -2032,18 +2096,76 @@ export function DataProvider({ children }) {
   };
 
   const updateBookingStatus = async (id, status, notes = "") => {
+    let affectedBooking = null;
+
     setBookings(prev => {
-      const nextList = prev.map(b => b.id === id ? { ...b, status, notes } : b);
+      const nextList = prev.map(b => {
+        if (b.id === id) {
+          affectedBooking = { ...b, status, notes: notes || b.notes };
+          return affectedBooking;
+        }
+        return b;
+      });
       try {
         localStorage.setItem('polimdo_cached_bookings', JSON.stringify(nextList));
       } catch {}
       return nextList;
     });
 
+    // Sync inventory stock changes when loan is approved or marked returned
+    if (affectedBooking && affectedBooking.itemId) {
+      const qty = Number(affectedBooking.quantity) || 1;
+      setInventory(prev => {
+        const nextInv = prev.map(item => {
+          if (item.id === affectedBooking.itemId) {
+            const currentAvail = Number(item.availableQty ?? item.availableStock ?? 0);
+            const currentBorrowed = Number(item.borrowedQty ?? 0);
+            let newAvail = currentAvail;
+            let newBorrowed = currentBorrowed;
+
+            if (status === 'approved') {
+              newAvail = Math.max(0, currentAvail - qty);
+              newBorrowed = currentBorrowed + qty;
+            } else if (status === 'returned') {
+              newAvail = currentAvail + qty;
+              newBorrowed = Math.max(0, currentBorrowed - qty);
+            }
+
+            const updatedItem = {
+              ...item,
+              availableQty: newAvail,
+              availableStock: newAvail,
+              borrowedQty: newBorrowed
+            };
+
+            if (supabase) {
+              supabase.from("inventory").update({
+                available_qty: newAvail,
+                borrowed_qty: newBorrowed
+              }).eq("id", item.id).catch(e => console.warn("Supabase stock update error:", e));
+            }
+
+            return updatedItem;
+          }
+          return item;
+        });
+
+        try {
+          localStorage.setItem('polimdo_cached_inventory', JSON.stringify(nextInv));
+        } catch {}
+        return nextInv;
+      });
+    }
+
     if (supabase) {
       try {
-        await supabase.from("bookings").update({ status, notes }).eq("id", id);
-      } catch (e) { console.warn("Supabase booking status update notice:", e); }
+        const { error } = await supabase.from("bookings").update({ status, notes }).eq("id", id);
+        if (error) {
+          await supabase.from("bookings").update({ status }).eq("id", id);
+        }
+      } catch (e) {
+        console.warn("Supabase booking status update notice:", e);
+      }
     }
 
     try {

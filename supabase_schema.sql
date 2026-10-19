@@ -114,11 +114,21 @@ CREATE TABLE IF NOT EXISTS public.bookings (
     item_name TEXT,
     borrower_name TEXT NOT NULL,
     nim TEXT,
+    borrower_id TEXT,
+    borrower_role TEXT DEFAULT 'Mahasiswa',
+    borrower_class TEXT,
+    class_name TEXT,
     phone TEXT,
     start_date TEXT,
     end_date TEXT,
+    borrow_date TEXT,
+    expected_return_date TEXT,
+    return_date TEXT,
+    quantity INTEGER DEFAULT 1,
     purpose TEXT,
+    notes TEXT,
     status TEXT DEFAULT 'pending',
+    approved_by TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -223,3 +233,18 @@ BEGIN
             FOR DELETE USING (bucket_id = 'videos');
     END IF;
 END $$;
+
+-- ==============================================================================
+-- MIGRASI / PENYESUAIAN KOLOM TABEL BOOKINGS (Untuk database yang sudah dibuat)
+-- ==============================================================================
+ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS borrower_id TEXT;
+ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS borrower_role TEXT DEFAULT 'Mahasiswa';
+ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS borrower_class TEXT;
+ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS class_name TEXT;
+ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS borrow_date TEXT;
+ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS expected_return_date TEXT;
+ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS return_date TEXT;
+ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS quantity INTEGER DEFAULT 1;
+ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS notes TEXT;
+ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS approved_by TEXT;
+

@@ -534,13 +534,13 @@ export function MobileFloorPlan({ onBackToSignage }) {
               <div className="min-w-0">
                 <h4 className="text-xs font-bold text-white truncate">{item.name}</h4>
                 <span className="text-[10px] text-emerald-400 font-mono">
-                  Tersedia: {item.availableStock} {item.unit}
+                  Tersedia: {item.availableQty ?? item.availableStock ?? 0} {item.unit || 'Unit'}
                 </span>
               </div>
 
               <button
                 onClick={() => setBorrowingItem(item)}
-                disabled={item.availableStock <= 0}
+                disabled={(item.availableQty ?? item.availableStock ?? 0) <= 0}
                 className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white text-xs font-bold shrink-0 transition-all"
               >
                 Pinjam
