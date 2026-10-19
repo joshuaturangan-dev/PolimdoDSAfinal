@@ -38,7 +38,8 @@ export function FacultyView() {
     scrollToTop
   } = useAutoScroll({ initialEnabled: true, initialSpeed: 'normal' });
 
-  const facultyList = (faculty && faculty.length > 0) ? faculty : DEFAULT_FACULTY;
+  const isCustom = typeof window !== 'undefined' && localStorage.getItem('polimdo_user_has_custom_faculty') === 'true';
+  const facultyList = (isCustom && faculty) ? faculty : ((faculty && faculty.length > 0) ? faculty : DEFAULT_FACULTY);
 
   const filteredFaculty = facultyList.filter((f) => {
     if (!searchQuery.trim()) return true;
@@ -100,15 +101,25 @@ export function FacultyView() {
             className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-700/60 hover:border-cyan-400/60 shadow-lg hover:shadow-cyan-950/40 transition-all cursor-pointer flex gap-3.5 group"
           >
             {/* Faculty Portrait Image */}
-            <div className="relative w-20 h-24 rounded-xl overflow-hidden shrink-0 bg-slate-950 border border-cyan-500/30 group-hover:scale-105 transition-transform duration-300">
-              <img
-                src={fac.photo || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80"}
-                alt={fac.name}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.target.src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80";
-                }}
-              />
+            <div className="relative w-20 h-24 rounded-xl overflow-hidden shrink-0 bg-slate-950 border border-cyan-500/30 group-hover:scale-105 transition-transform duration-300 flex items-center justify-center">
+              {fac.photo ? (
+                <img
+                  src={fac.photo}
+                  alt={fac.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const fallback = e.currentTarget.parentElement?.querySelector('.faculty-card-fallback');
+                    if (fallback) fallback.style.display = 'flex';
+                  }}
+                />
+              ) : null}
+              <div 
+                className={`faculty-card-fallback w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-slate-800 to-slate-950 text-slate-400 ${fac.photo ? 'hidden' : 'flex'}`}
+              >
+                <User className="w-8 h-8 text-cyan-400/80 mb-1" />
+                <span className="text-[8px] font-extrabold uppercase text-slate-400 tracking-wider">Dosen</span>
+              </div>
               <span className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent py-0.5 text-center text-[9px] font-bold text-cyan-300 uppercase">
                 {lang === 'id' ? fac.role : fac.roleEn || fac.role}
               </span>
@@ -157,12 +168,25 @@ export function FacultyView() {
             </button>
 
             <div className="flex flex-col sm:flex-row gap-5 items-center sm:items-start">
-              <div className="w-32 h-40 rounded-2xl overflow-hidden shrink-0 bg-slate-950 border-2 border-cyan-400 shadow-lg">
-                <img
-                  src={selectedFaculty.photo}
-                  alt={selectedFaculty.name}
-                  className="w-full h-full object-cover"
-                />
+              <div className="w-32 h-40 rounded-2xl overflow-hidden shrink-0 bg-slate-950 border-2 border-cyan-400 shadow-lg flex items-center justify-center relative">
+                {selectedFaculty.photo ? (
+                  <img
+                    src={selectedFaculty.photo}
+                    alt={selectedFaculty.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      const fallback = e.currentTarget.parentElement?.querySelector('.faculty-modal-fallback');
+                      if (fallback) fallback.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
+                <div 
+                  className={`faculty-modal-fallback w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-slate-800 to-slate-950 text-slate-400 ${selectedFaculty.photo ? 'hidden' : 'flex'}`}
+                >
+                  <User className="w-14 h-14 text-cyan-400/80 mb-1.5" />
+                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Profil Dosen</span>
+                </div>
               </div>
 
               <div className="flex-1 text-center sm:text-left">

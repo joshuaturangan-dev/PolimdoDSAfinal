@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { 
   X, 
   Lock, 
+  User,
   UserCheck, 
   Calendar, 
   Users, 
@@ -1000,7 +1001,7 @@ export function AdminModal({ onClose }) {
                           courses: [],
                           officeHours: 'Senin - Jumat',
                           room: 'Ruang Dosen Elektro',
-                          photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'
+                          photo: ''
                         });
                         setPhotoPreview('');
                       }}
@@ -1025,30 +1026,58 @@ export function AdminModal({ onClose }) {
 
                       {/* Photo Upload Box */}
                       <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-4">
-                        <div className="w-20 h-24 rounded-xl overflow-hidden bg-black border border-cyan-400 shrink-0">
-                          <img
-                            src={photoPreview || facultyForm.photo}
-                            alt="Preview"
-                            className="w-full h-full object-cover"
-                          />
+                        <div className="w-20 h-24 rounded-xl overflow-hidden bg-slate-950 border border-cyan-400 shrink-0 flex items-center justify-center relative">
+                          {(photoPreview || facultyForm.photo) ? (
+                            <img
+                              src={photoPreview || facultyForm.photo}
+                              alt="Preview"
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                const fallback = e.currentTarget.parentElement?.querySelector('.admin-photo-fallback');
+                                if (fallback) fallback.style.display = 'flex';
+                              }}
+                            />
+                          ) : null}
+                          <div className={`admin-photo-fallback w-full h-full flex flex-col items-center justify-center bg-slate-950 text-slate-500 ${(photoPreview || facultyForm.photo) ? 'hidden' : 'flex'}`}>
+                            <User className="w-8 h-8 text-slate-600 mb-1" />
+                            <span className="text-[9px] text-slate-400 font-bold">Tanpa Foto</span>
+                          </div>
                         </div>
 
-                        <div className="flex-1 space-y-1.5">
+                        <div className="flex-1 space-y-2">
                           <span className="text-xs font-bold text-white block">
-                            {t('uploadPhotoTitle')}
+                            {t('uploadPhotoTitle') || 'Foto Profil Dosen'}
                           </span>
-                          <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold cursor-pointer transition-all">
-                            <Camera className="w-3.5 h-3.5" />
-                            <span>{uploadingPhoto ? 'Mengunggah...' : 'Pilih Foto Baru (JPG/PNG)'}</span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handlePhotoFileChange}
-                              className="hidden"
-                            />
-                          </label>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold cursor-pointer transition-all">
+                              <Camera className="w-3.5 h-3.5" />
+                              <span>{uploadingPhoto ? 'Mengunggah...' : 'Pilih Foto Baru (JPG/PNG)'}</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handlePhotoFileChange}
+                                className="hidden"
+                              />
+                            </label>
+
+                            {Boolean(photoPreview || facultyForm.photo) && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPhotoPreview('');
+                                  setFacultyForm(prev => prev ? ({ ...prev, photo: '' }) : prev);
+                                  showToast('Foto profil dihapus dari formulir. Klik Simpan Data Dosen untuk menerapkan.');
+                                }}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-500/40 text-xs font-bold transition-all"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Hapus Foto</span>
+                              </button>
+                            )}
+                          </div>
                           <p className="text-[10px] text-slate-400">
-                            Foto akan langsung disimpan ke server dan tampil pada Digital Signage.
+                            Foto akan disimpan ke database online & lokal. Jika foto dihapus, sistem menampilkan inisial avatar.
                           </p>
                         </div>
                       </div>
@@ -1159,11 +1188,24 @@ export function AdminModal({ onClose }) {
                         className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between gap-3 text-xs"
                       >
                         <div className="flex items-center gap-3">
-                          <img
-                            src={fac.photo}
-                            alt={fac.name}
-                            className="w-10 h-12 rounded-lg object-cover bg-black border border-slate-700 shrink-0"
-                          />
+                          <div className="w-10 h-12 rounded-lg overflow-hidden bg-slate-950 border border-slate-700 shrink-0 flex items-center justify-center">
+                            {fac.photo ? (
+                              <img
+                                src={fac.photo}
+                                alt={fac.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  if (e.currentTarget.nextElementSibling) {
+                                    e.currentTarget.nextElementSibling.style.display = 'flex';
+                                  }
+                                }}
+                              />
+                            ) : null}
+                            <div className={`w-full h-full flex items-center justify-center bg-slate-900 text-slate-400 ${fac.photo ? 'hidden' : 'flex'}`}>
+                              <User className="w-5 h-5 text-slate-500" />
+                            </div>
+                          </div>
                           <div>
                             <h5 className="font-bold text-white">{fac.name}</h5>
                             <p className="text-[11px] text-cyan-400">{fac.title}</p>

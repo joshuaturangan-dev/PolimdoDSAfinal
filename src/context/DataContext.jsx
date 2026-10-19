@@ -377,7 +377,7 @@ export const DEFAULT_FACULTY = [
     expertiseEn: "Control Systems & Industrial Automation",
     room: "Ruang Jurusan Elektro",
     phone: "+62 812-4456-7890",
-    photo: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+    photo: "",
     bio: "Dosen senior bidang Sistem Kontrol dan Otomasi Industri dengan pengalaman lebih dari 20 tahun di Politeknik Negeri Manado."
   },
   {
@@ -394,7 +394,7 @@ export const DEFAULT_FACULTY = [
     expertiseEn: "Information Technology & Smart Grid",
     room: "Ruang Jurusan Elektro",
     phone: "+62 813-5678-9012",
-    photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
+    photo: "",
     bio: "Pengampu mata kuliah integrasi IoT kelistrikan dan sistem jaringan monitoring energi."
   },
   {
@@ -411,7 +411,7 @@ export const DEFAULT_FACULTY = [
     expertiseEn: "Power Systems & Substation Protection",
     room: "Ruang Kaprodi D4",
     phone: "+62 811-4321-9876",
-    photo: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80",
+    photo: "",
     bio: "Spesialis analisis kestabilan sistem tenaga listrik, koordinasi relay proteksi, dan audit energi industri."
   },
   {
@@ -428,7 +428,7 @@ export const DEFAULT_FACULTY = [
     expertiseEn: "Power Installation, Safety (K3) & Renewable Energy",
     room: "Ruangan Dosen Lab Elektro",
     phone: "+62 821-9012-3456",
-    photo: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=400&q=80",
+    photo: "",
     bio: "Asesor kompetensi BNSP bidang Ketenagalistrikan dan instruktur utama praktikum instalasi tegangan menengah."
   }
 ];
@@ -608,10 +608,21 @@ const getInitialSchedules = () => {
 const getInitialFaculty = () => {
   if (typeof window === 'undefined') return DEFAULT_FACULTY;
   try {
+    const isCustom = localStorage.getItem('polimdo_user_has_custom_faculty') === 'true';
     const raw = localStorage.getItem('polimdo_cached_faculty');
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) {
+        if (parsed.length > 0) return parsed;
+        if (isCustom) return [];
+      }
+    }
+    const deletedIdsRaw = localStorage.getItem('polimdo_deleted_faculty_ids');
+    if (deletedIdsRaw) {
+      const deletedIds = JSON.parse(deletedIdsRaw);
+      if (Array.isArray(deletedIds) && deletedIds.length > 0) {
+        return DEFAULT_FACULTY.filter(f => !deletedIds.includes(f.id));
+      }
     }
   } catch {}
   return DEFAULT_FACULTY;
@@ -794,29 +805,46 @@ export function DataProvider({ children }) {
             } catch {}
           }
 
-          if (facData && facData.length > 0) {
-            const mappedFaculty = facData.map(f => ({
-              id: f.id,
-              name: f.name,
-              title: f.title,
-              titleEn: f.title_en || f.titleEn,
-              nip: f.nip,
-              nidn: f.nidn,
-              role: f.role,
-              roleEn: f.role_en || f.roleEn,
-              room: f.room,
-              email: f.email,
-              phone: f.phone,
-              expertise: f.expertise,
-              expertiseEn: f.expertise_en || f.expertiseEn,
-              photo: f.photo,
-              bio: f.bio,
-              bioEn: f.bio_en || f.bioEn
-            }));
-            setFaculty(mappedFaculty);
-            try {
-              localStorage.setItem('polimdo_cached_faculty', JSON.stringify(mappedFaculty));
-            } catch {}
+          if (facData) {
+            const deletedIds = typeof window !== 'undefined'
+              ? JSON.parse(localStorage.getItem('polimdo_deleted_faculty_ids') || '[]')
+              : [];
+            const isCustom = typeof window !== 'undefined' && localStorage.getItem('polimdo_user_has_custom_faculty') === 'true';
+
+            if (facData.length > 0) {
+              const mappedFaculty = facData
+                .filter(f => !deletedIds.includes(f.id))
+                .map(f => ({
+                  id: f.id,
+                  name: f.name,
+                  title: f.title,
+                  titleEn: f.title_en || f.titleEn,
+                  nip: f.nip,
+                  nidn: f.nidn,
+                  role: f.role,
+                  roleEn: f.role_en || f.roleEn,
+                  room: f.room,
+                  email: f.email,
+                  phone: f.phone,
+                  expertise: f.expertise,
+                  expertiseEn: f.expertise_en || f.expertiseEn,
+                  photo: f.photo || '',
+                  bio: f.bio,
+                  bioEn: f.bio_en || f.bioEn
+                }));
+              setFaculty(mappedFaculty);
+              try {
+                localStorage.setItem('polimdo_cached_faculty', JSON.stringify(mappedFaculty));
+              } catch {}
+            } else if (isCustom) {
+              const cached = localStorage.getItem('polimdo_cached_faculty');
+              if (cached) {
+                try {
+                  const parsed = JSON.parse(cached);
+                  if (Array.isArray(parsed)) setFaculty(parsed);
+                } catch {}
+              }
+            }
           }
 
           if (supabase) {
@@ -1288,34 +1316,35 @@ export function DataProvider({ children }) {
   // Faculty operations
   const addFaculty = async (facultyData) => {
     const newId = facultyData.id || `fac_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
-    const newObj = { ...facultyData, id: newId };
+    const newObj = { ...facultyData, id: newId, photo: facultyData.photo || '' };
     setFaculty(prev => {
       const nextList = [...prev, newObj];
       try {
         localStorage.setItem('polimdo_cached_faculty', JSON.stringify(nextList));
+        localStorage.setItem('polimdo_user_has_custom_faculty', 'true');
       } catch {}
       return nextList;
     });
 
     if (supabase) {
       try {
-        await supabase.from("faculty").insert({
+        await supabase.from("faculty").upsert({
           id: newId,
           name: newObj.name,
           title: newObj.title,
-          title_en: newObj.titleEn,
-          nip: newObj.nip,
-          nidn: newObj.nidn,
-          role: newObj.role,
-          role_en: newObj.roleEn,
-          room: newObj.room,
-          email: newObj.email,
-          phone: newObj.phone,
-          expertise: newObj.expertise,
-          expertise_en: newObj.expertiseEn,
-          photo: newObj.photo,
-          bio: newObj.bio,
-          bio_en: newObj.bioEn
+          title_en: newObj.titleEn || newObj.title,
+          nip: newObj.nip || '',
+          nidn: newObj.nidn || '',
+          role: newObj.role || 'Dosen',
+          role_en: newObj.roleEn || newObj.role || 'Lecturer',
+          room: newObj.room || '',
+          email: newObj.email || '',
+          phone: newObj.phone || '',
+          expertise: newObj.expertise || '',
+          expertise_en: newObj.expertiseEn || newObj.expertise || '',
+          photo: newObj.photo || '',
+          bio: newObj.bio || '',
+          bio_en: newObj.bioEn || ''
         });
       } catch (e) { console.warn("Supabase faculty insert notice:", e); }
     }
@@ -1332,33 +1361,36 @@ export function DataProvider({ children }) {
   };
 
   const updateFaculty = async (id, facultyData) => {
+    const updatedObj = { ...facultyData, photo: facultyData.photo || '' };
     setFaculty(prev => {
-      const nextList = prev.map(f => f.id === id ? { ...f, ...facultyData } : f);
+      const nextList = prev.map(f => f.id === id ? { ...f, ...updatedObj } : f);
       try {
         localStorage.setItem('polimdo_cached_faculty', JSON.stringify(nextList));
+        localStorage.setItem('polimdo_user_has_custom_faculty', 'true');
       } catch {}
       return nextList;
     });
 
     if (supabase) {
       try {
-        await supabase.from("faculty").update({
-          name: facultyData.name,
-          title: facultyData.title,
-          title_en: facultyData.titleEn,
-          nip: facultyData.nip,
-          nidn: facultyData.nidn,
-          role: facultyData.role,
-          role_en: facultyData.roleEn,
-          room: facultyData.room,
-          email: facultyData.email,
-          phone: facultyData.phone,
-          expertise: facultyData.expertise,
-          expertise_en: facultyData.expertiseEn,
-          photo: facultyData.photo,
-          bio: facultyData.bio,
-          bio_en: facultyData.bioEn
-        }).eq("id", id);
+        await supabase.from("faculty").upsert({
+          id: id,
+          name: updatedObj.name,
+          title: updatedObj.title,
+          title_en: updatedObj.titleEn || updatedObj.title,
+          nip: updatedObj.nip || '',
+          nidn: updatedObj.nidn || '',
+          role: updatedObj.role || 'Dosen',
+          role_en: updatedObj.roleEn || updatedObj.role || 'Lecturer',
+          room: updatedObj.room || '',
+          email: updatedObj.email || '',
+          phone: updatedObj.phone || '',
+          expertise: updatedObj.expertise || '',
+          expertise_en: updatedObj.expertiseEn || updatedObj.expertise || '',
+          photo: updatedObj.photo || '',
+          bio: updatedObj.bio || '',
+          bio_en: updatedObj.bioEn || ''
+        });
       } catch (e) { console.warn("Supabase faculty update notice:", e); }
     }
 
@@ -1366,7 +1398,7 @@ export function DataProvider({ children }) {
       await fetch(getApiUrl(`/api/faculty/${id}`), {
         method: "PUT",
         headers: authHeaders(),
-        body: JSON.stringify(facultyData)
+        body: JSON.stringify(updatedObj)
       });
     } catch {}
 
@@ -1378,6 +1410,12 @@ export function DataProvider({ children }) {
       const nextList = prev.filter(f => f.id !== id);
       try {
         localStorage.setItem('polimdo_cached_faculty', JSON.stringify(nextList));
+        localStorage.setItem('polimdo_user_has_custom_faculty', 'true');
+        const deletedIds = JSON.parse(localStorage.getItem('polimdo_deleted_faculty_ids') || '[]');
+        if (!deletedIds.includes(id)) {
+          deletedIds.push(id);
+          localStorage.setItem('polimdo_deleted_faculty_ids', JSON.stringify(deletedIds));
+        }
       } catch {}
       return nextList;
     });
